@@ -1,19 +1,24 @@
 import torch
 
+from device import get_device
+from vae import load_vae
+
+
 def main():
 
-    cuda_available = torch.cuda.is_available()
+    print("=" * 60)
+    print("NoiseGuard")
+    print("=" * 60)
 
-    device = torch.device("cuda" if cuda_available else "cpu")
-    print(f"PyTorch version: {torch.__version__}")
-    print(f"CUDA available: {cuda_available}")
-    print(f"Device being used: {device.type}")
-    
-    if cuda_available:
-        gpu_name = torch.cuda.get_device_name(0)
-        print(f"GPU name: {gpu_name}")
-    else:
-        print("GPU name: N/A (CUDA not available)")
+    print(torch.__version__)
+
+    device = get_device()
+
+    vae = load_vae(device)
+
+    print()
+
+    print("Ready.")
 
 if __name__ == "__main__":
     main()
