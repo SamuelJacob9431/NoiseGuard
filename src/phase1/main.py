@@ -2,6 +2,7 @@ import torch
 from pathlib import Path
 from device import get_device
 from vae import load_vae
+from vae import encode_image
 from vae import freeze_vae
 from image_utils import load_image
 
@@ -18,14 +19,22 @@ def main():
 
     vae = load_vae(device)
     vae = freeze_vae(vae)
-    
-
-      
-
+    latent = encode_image(
+    vae,
+    image
+)
     total_parameters = sum(
         parameter.numel()
         for parameter in vae.parameters()
     )
+    print("\nLatent Created")
+
+    print(f"Shape : {latent.shape}")
+
+    print(f"Mean : {latent.mean().item():.4f}")
+
+    print(f"Std : {latent.std().item():.4f}")
+    
 
     print(f"Parameters : {total_parameters:,}")
 
