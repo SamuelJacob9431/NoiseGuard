@@ -19,21 +19,12 @@ def main():
 
     vae = load_vae(device)
     vae = freeze_vae(vae)
-    latent = encode_image(
-    vae,
-    image
-)
+    
     total_parameters = sum(
         parameter.numel()
         for parameter in vae.parameters()
     )
-    print("\nLatent Created")
 
-    print(f"Shape : {latent.shape}")
-
-    print(f"Mean : {latent.mean().item():.4f}")
-
-    print(f"Std : {latent.std().item():.4f}")
     
 
     print(f"Parameters : {total_parameters:,}")
@@ -49,7 +40,13 @@ def main():
     print(f"Min   : {image.min().item():.3f}")
     print(f"Max   : {image.max().item():.3f}")
 
-    
-     
+    latent = encode_image(vae,image)
+    print("\nLatent Created")
+
+    print(f"Shape : {latent.shape}")
+
+    print(f"Mean : {latent.mean().item():.4f}")
+
+    print(f"Std : {latent.std().item():.4f}")
 if __name__ == "__main__":
     main()

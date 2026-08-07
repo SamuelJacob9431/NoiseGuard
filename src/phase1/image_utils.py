@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import torch
 from PIL import Image
 import torchvision.transforms as transforms
 
@@ -31,6 +31,15 @@ def load_image(image_path, device):
 
     image_tensor = image_tensor.unsqueeze(0)
 
-    image_tensor = image_tensor.to(device)
+    dtype = (
+    torch.float16
+    if device.type == "cuda"
+    else torch.float32
+)
+
+    image_tensor = image_tensor.to(
+    device=device,
+    dtype=dtype
+     )
 
     return image_tensor
