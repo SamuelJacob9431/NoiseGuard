@@ -1,8 +1,9 @@
 import torch
-
+from pathlib import Path
 from device import get_device
 from vae import load_vae
 from vae import freeze_vae
+from image_utils import load_image
 
 
 def main():
@@ -17,6 +18,9 @@ def main():
 
     vae = load_vae(device)
     vae = freeze_vae(vae)
+    
+
+      
 
     total_parameters = sum(
         parameter.numel()
@@ -26,6 +30,17 @@ def main():
     print(f"Parameters : {total_parameters:,}")
 
     print("\n✓ Ready for inference")
+    PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
+    IMAGE_PATH = PROJECT_ROOT / "images" / "test_image.jpg"
+
+    image = load_image(IMAGE_PATH, device)
+    print("\nImage Loaded Successfully")
+    print(f"Shape : {image.shape}")
+    print(f"Min   : {image.min().item():.3f}")
+    print(f"Max   : {image.max().item():.3f}")
+
+    
+     
 if __name__ == "__main__":
     main()
