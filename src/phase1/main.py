@@ -2,6 +2,7 @@ import torch
 
 from device import get_device
 from vae import load_vae
+from vae import freeze_vae
 
 
 def main():
@@ -15,10 +16,16 @@ def main():
     device = get_device()
 
     vae = load_vae(device)
+    vae = freeze_vae(vae)
 
-    print()
+    total_parameters = sum(
+        parameter.numel()
+        for parameter in vae.parameters()
+    )
 
-    print("Ready.")
+    print(f"Parameters : {total_parameters:,}")
+
+    print("\n✓ Ready for inference")
 
 if __name__ == "__main__":
     main()
