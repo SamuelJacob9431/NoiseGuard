@@ -45,3 +45,11 @@ def encode_image(vae, image):
         latent = latent_distribution.sample()
 
     return latent
+
+def decode_latent(vae, latent):
+
+    with torch.no_grad():
+
+        reconstruction = vae.decode(latent).sample
+
+    return reconstruction
