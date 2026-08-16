@@ -1,5 +1,6 @@
 import torch
 
+from vae import encode_image
 from .losses import latent_distance
 
 
@@ -11,31 +12,26 @@ def pgd_attack(
     alpha=2 / 255,
     steps=50,
 ):
+    vae.eval()
 
-    adversarial_image = (
-        original_image
-        .detach()
-        .clone()
-    )
-
+    adversarial_image = original_image.detach().clone()
     loss_history = []
 
     for step in range(steps):
 
         adversarial_image.requires_grad_(True)
 
-        adversarial_latent = vae.encode(
+        adversarial_latent = encode_image(
+            vae,
             adversarial_image
-        ).latent_dist.mean
+        )
 
         loss = latent_distance(
             original_latent,
             adversarial_latent
         )
 
-        loss_history.append(
-            loss.item()
-        )
+        loss_history.append(loss.item())
 
         vae.zero_grad(set_to_none=True)
 
@@ -60,8 +56,8 @@ def pgd_attack(
 
             perturbation = torch.clamp(
                 perturbation,
-                -epsilon,
-                epsilon
+                min=-epsilon,
+                max=epsilon
             )
 
             adversarial_image = (
@@ -71,11 +67,8 @@ def pgd_attack(
 
             adversarial_image = torch.clamp(
                 adversarial_image,
-                -1.0,
-                1.0
+                min=-1.0,
+                max=1.0
             )
 
-    return (
-        adversarial_image.detach(),
-        loss_history
-    )
+    return adversarial_image.detach(), loss_history
