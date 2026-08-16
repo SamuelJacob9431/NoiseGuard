@@ -1,7 +1,7 @@
 import torch
 
-from vae import encode_image
-from .losses import latent_distance
+from src.phase1.vae import encode_image
+from src.phase2.losses import latent_distance
 
 
 def pgd_attack(
@@ -56,8 +56,8 @@ def pgd_attack(
 
             perturbation = torch.clamp(
                 perturbation,
-                min=-epsilon,
-                max=epsilon
+                -epsilon,
+                epsilon
             )
 
             adversarial_image = (
@@ -67,8 +67,8 @@ def pgd_attack(
 
             adversarial_image = torch.clamp(
                 adversarial_image,
-                min=-1.0,
-                max=1.0
+                -1.0,
+                1.0
             )
 
     return adversarial_image.detach(), loss_history
