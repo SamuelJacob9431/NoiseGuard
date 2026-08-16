@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NoiseGuard - Image Protection Tool</title>
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #f4f4f4;
+    color: #222;
+    margin: 0;
+    padding: 0;
+  }
+
+  header {
+    background-color: #2c3e50;
+    color: white;
+    padding: 24px 20px;
+    text-align: center;
+  }
+
+  header h1 {
+    margin: 0 0 6px 0;
+    font-size: 28px;
+  }
+
+  header p {
+    margin: 0;
+    font-size: 14px;
+    color: #cfd8e3;
+  }
+
+  .container {
+    max-width: 950px;
+    margin: 30px auto;
+    padding: 0 20px;
+  }
+
+  .card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+
+  .card h2 {
+    margin-top: 0;
+    font-size: 18px;
+    color: #2c3e50;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 8px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  button, .file-label {
+    background-color: #2c3e50;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  button:hover, .file-label:hover {
+    background-color: #34495e;
+  }
+
+  button:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+  }
+
+  input[type="file"] {
+    display: none;
+  }
+
+  .image-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .image-box {
+    text-align: center;
+  }
+
+  .image-box p {
+    font-weight: bold;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+
+  .image-frame {
+    background-color: #eee;
+    border: 1px dashed #bbb;
+    border-radius: 6px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .image-frame img {
+    max-width: 100%;
+    max-height: 100%;
+    display: none;
+  }
+
+  .image-frame span {
+    color: #888;
+    font-size: 13px;
+    padding: 0 10px;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-box {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .stat-box .value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2c3e50;
+  }
+
+  .stat-box .label {
+    font-size: 11px;
+    color: #777;
+    margin-top: 4px;
+  }
+
+  canvas#loss-canvas {
+    width: 100%;
+    height: 180px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+  }
+
+  #status {
+    margin-top: 14px;
+    font-size: 13px;
+    color: #555;
+  }
+
+  footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 12px;
+    color: #999;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>NoiseGuard</h1>
+  <p>A tool that adds adversarial noise to protect images from AI reconstruction</p>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>1. Load and Run</h2>
+    <div class="controls">
+      <label class="file-label" for="file-input">Load Image</label>
+      <input id="file-input" type="file" accept="image/*" />
+      <button id="run-btn" disabled>Run Pipeline</button>
+    </div>
+
+    <div class="image-row">
+      <div class="image-box">
+        <p>Original</p>
+        <div class="image-frame" id="box-original">
+          <span>No image loaded</span>
+          <img id="img-original" />
+        </div>
+      </div>
+      <div class="image-box">
+        <p>Reconstruction</p>
+        <div class="image-frame" id="box-recon">
+          <span>Waiting for run</span>
+          <img id="img-recon" />
+        </div>
+      </div>
+      <div class="image-box">
+        <p>Protected</p>
+        <div class="image-frame" id="box-protected">
+          <span>Waiting for run</span>
+          <img id="img-protected" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. Latent Statistics</h2>
+    <div class="stats-row">
+      <div class="stat-box"><div class="value" id="stat-mean">-</div><div class="label">Latent Mean</div></div>
+      <div class="stat-box"><div class="value" id="stat-std">-</div><div class="label">Latent Std</div></div>
+      <div class="stat-box"><div class="value" id="stat-shape">-</div><div class="label">Latent Shape</div></div>
+      <div class="stat-box"><div class="value" id="stat-mse">-</div><div class="label">Reconstruction MSE</div></div>
+      <div class="stat-box"><div class="value" id="stat-dist">-</div><div class="label">Latent Distance</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3. PGD Loss Curve</h2>
+    <canvas id="loss-canvas"></canvas>
+  </div>
+
+  <div id="status">Status: Idle - load an image to begin</div>
+
+</div>
+
+<footer>NoiseGuard - student project</footer>
+
+<script>
+  /* -----------------------------------------------------------
+     Grab references to all the page elements we need to update.
+     ----------------------------------------------------------- */
+  const fileInput   = document.getElementById('file-input');
+  const runBtn      = document.getElementById('run-btn');
+
+  const boxOriginal  = document.getElementById('box-original');
+  const boxRecon     = document.getElementById('box-recon');
+  const boxProtected = document.getElementById('box-protected');
+  const imgOriginal  = document.getElementById('img-original');
+  const imgRecon     = document.getElementById('img-recon');
+  const imgProtected = document.getElementById('img-protected');
+
+  const statusEl = document.getElementById('status');
+
+  const stat = {
+    mean:  document.getElementById('stat-mean'),
+    std:   document.getElementById('stat-std'),
+    shape: document.getElementById('stat-shape'),
+    mse:   document.getElementById('stat-mse'),
+    dist:  document.getElementById('stat-dist'),
+  };
+
+  const lossCanvas = document.getElementById('loss-canvas');
+  const ctx = lossCanvas.getContext('2d');
+
+  let currentFile = null;
+
+  /* -----------------------------------------------------------
+     STEP 1: Load Image button
+     When the user picks a file, show it in the "Original" box
+     and reset everything else back to its empty state.
+     ----------------------------------------------------------- */
+  fileInput.addEventListener('change', function (event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    currentFile = file;
+
+    // Show the picked image using a local, temporary URL
+    const url = URL.createObjectURL(file);
+    imgOriginal.src = url;
+    imgOriginal.style.display = 'block';
+    boxOriginal.querySelector('span').style.display = 'none';
+
+    resetBox(boxRecon, imgRecon, 'Waiting for run');
+    resetBox(boxProtected, imgProtected, 'Waiting for run');
+    resetStats();
+    drawLossCurve([]);
+
+    runBtn.disabled = false;
+    statusEl.textContent = 'Status: Loaded ' + file.name;
+  });
+
+  /* -----------------------------------------------------------
+     STEP 2: Run Pipeline button
+     This is where the real PGD attack would run. Right now it
+     calls a placeholder function that returns fake/empty data,
+     so you can see the wiring works before the real model exists.
+     ----------------------------------------------------------- */
+  runBtn.addEventListener('click', async function () {
+    if (!currentFile) return;
+
+    runBtn.disabled = true;
+    statusEl.textContent = 'Status: Running PGD attack...';
+
+    const result = await runPipeline(currentFile);
+
+    if (!result) {
+      statusEl.textContent = 'Status: Pipeline not connected yet (placeholder)';
+      runBtn.disabled = false;
+      return;
+    }
+
+    // If a real result comes back, fill in the UI with it
+    imgRecon.src = result.reconstructionUrl;
+    imgRecon.style.display = 'block';
+    boxRecon.querySelector('span').style.display = 'none';
+
+    imgProtected.src = result.protectedUrl;
+    imgProtected.style.display = 'block';
+    boxProtected.querySelector('span').style.display = 'none';
+
+    stat.mean.textContent  = result.latentMean;
+    stat.std.textContent   = result.latentStd;
+    stat.shape.textContent = result.latentShape;
+    stat.mse.textContent   = result.reconstructionMse;
+    stat.dist.textContent  = result.finalLatentDistance;
+
+    drawLossCurve(result.lossCurve || []);
+    statusEl.textContent = 'Status: PGD attack complete';
+    runBtn.disabled = false;
+  });
+
+  /* -----------------------------------------------------------
+     PLACEHOLDER FUNCTION
+     This is the ONE function that needs to be replaced with a
+     real call to a Python/PyTorch backend (for example, using
+     fetch() to send the image to a server that runs the actual
+     VAE encode -> PGD attack -> decode steps).
+
+     Right now it just waits half a second and returns nothing,
+     so the page shows "not connected yet" instead of pretending
+     to have run a real attack.
+     ----------------------------------------------------------- */
+  async function runPipeline(imageFile) {
+    return new Promise(function (resolve) {
+      setTimeout(function () {
+        resolve(null); // TODO: replace with a real backend call
+      }, 500);
+    });
+  }
+
+  /* -----------------------------------------------------------
+     Small helper functions to reset the UI between runs
+     ----------------------------------------------------------- */
+  function resetBox(box, img, message) {
+    img.style.display = 'none';
+    img.removeAttribute('src');
+    const span = box.querySelector('span');
+    span.textContent = message;
+    span.style.display = 'block';
+  }
+
+  function resetStats() {
+    Object.values(stat).forEach(function (el) { el.textContent = '-'; });
+  }
+
+  /* -----------------------------------------------------------
+     Draws the PGD loss curve on a <canvas> using plain
+     JavaScript (no chart library needed).
+     ----------------------------------------------------------- */
+  function drawLossCurve(values) {
+    // Match canvas resolution to its displayed size
+    const rect = lossCanvas.getBoundingClientRect();
+    lossCanvas.width = rect.width;
+    lossCanvas.height = rect.height;
+
+    const w = lossCanvas.width;
+    const h = lossCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    if (!values || values.length === 0) {
+      ctx.fillStyle = '#999';
+      ctx.font = '13px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('No data yet', w / 2, h / 2);
+      return;
+    }
+
+    const max = Math.max(...values);
+    const min = Math.min(...values);
+    const range = (max - min) || 1;
+    const padding = 10;
+
+    // Convert each loss value into an (x, y) point on the canvas
+    const points = values.map(function (v, i) {
+      const x = padding + (i / (values.length - 1)) * (w - padding * 2);
+      const y = h - padding - ((v - min) / range) * (h - padding * 2);
+      return [x, y];
+    });
+
+    ctx.beginPath();
+    points.forEach(function (p, i) {
+      if (i === 0) ctx.moveTo(p[0], p[1]);
+      else ctx.lineTo(p[0], p[1]);
+    });
+    ctx.strokeStyle = '#2c3e50';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // Draw an empty chart on first page load
+  drawLossCurve([]);
+</script>
+
+</body>
+</html>
