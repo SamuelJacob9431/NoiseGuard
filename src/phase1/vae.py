@@ -36,13 +36,25 @@ def freeze_vae(vae):
 
     return vae
 
-def encode_image(vae, image):
+def encode_image(vae, image, requires_grad=False):
 
-    with torch.no_grad():
+    if requires_grad:
 
-        latent_distribution = vae.encode(image).latent_dist
+        latent_distribution = vae.encode(
+            image
+        ).latent_dist
 
         latent = latent_distribution.sample()
+
+    else:
+
+        with torch.no_grad():
+
+            latent_distribution = vae.encode(
+                image
+            ).latent_dist
+
+            latent = latent_distribution.sample()
 
     return latent
 

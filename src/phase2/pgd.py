@@ -19,11 +19,16 @@ def pgd_attack(
 
     for step in range(steps):
 
-        adversarial_image.requires_grad_(True)
+        adversarial_image = (
+            adversarial_image
+            .detach()
+            .requires_grad_(True)
+        )
 
         adversarial_latent = encode_image(
             vae,
-            adversarial_image
+            adversarial_image,
+            requires_grad=True
         )
 
         loss = latent_distance(
@@ -34,9 +39,6 @@ def pgd_attack(
         loss_history.append(loss.item())
 
         vae.zero_grad(set_to_none=True)
-
-        if adversarial_image.grad is not None:
-            adversarial_image.grad.zero_()
 
         loss.backward()
 
@@ -71,4 +73,7 @@ def pgd_attack(
                 1.0
             )
 
-    return adversarial_image.detach(), loss_history
+    return (
+        adversarial_image.detach(),
+        loss_history,
+    )
