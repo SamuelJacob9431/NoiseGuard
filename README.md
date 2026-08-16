@@ -18,13 +18,13 @@ latent produces a degraded result.
 - [x] **Phase 0 — Environment**
 - [x] **Phase 1 — Frozen VAE**
 - [x] **Phase 2 — PGD**
-- [ ] **Phase 3 — Verification**
-- [ ] **Phase 3.5 — Demo GUI** *(extra)*
-- [ ] **Phase 4 — Robustness**
-- [ ] **Phase 5 — JPEG-aware PGD**
-- [ ] **Phase 6 — Distilled Generator**
-- [ ] **Phase 7 — Integration**
-- [ ] **Phase 8 — Evaluation**
+- [ ] **Phase 3 — Demo GUI**
+- [ ] **Phase 4 — Verification**
+- [ ] **Phase 5 — Robustness**
+- [ ] **Phase 6 — JPEG-aware PGD**
+- [ ] **Phase 7 — Distilled Generator**
+- [ ] **Phase 8 — Integration**
+- [ ] **Phase 9 — Evaluation**
 
 ---
 
@@ -85,31 +85,7 @@ function, plus loss-curve logs from representative runs.
 
 ---
 
-### Phase 3 — Verification
-
-*(not started)*
-
-Confirm the attack actually degrades reconstruction, not just perturbs the
-latent numerically.
-
-- Run the *protected* image back through encode → decode and compare the
-  result against decoding the *original* image's latent.
-- Measure **Reconstruction MSE** (protected vs. original reconstruction)
-  and **Final Latent Distance** (L2 distance between original and perturbed
-  latents) as the two headline metrics.
-- Spot-check results visually: protected images should look unchanged to
-  the eye, while their reconstructions should show visible degradation
-  (blur, color shift, structural distortion) compared to the unprotected
-  baseline.
-- Collect latent statistics (mean, std, shape) per run for sanity-checking
-  that the attack isn't producing degenerate/out-of-distribution latents.
-
-**Deliverable:** a verification report comparing protected vs. unprotected
-reconstruction quality across the sample set, with the metrics above.
-
----
-
-### Phase 3.5 — Demo GUI *(extra)*
+### Phase 3 — Demo GUI ✅
 
 Build an interactive way to run and inspect the pipeline from Phases 1–3,
 for demos and qualitative review without touching a script each time.
@@ -136,7 +112,29 @@ connected.
 
 ---
 
-### Phase 4 — Robustness
+### Phase 4 — Verification
+
+*(not started)*
+
+Confirm the attack actually degrades reconstruction, not just perturbs the
+latent numerically.
+
+- Run the *protected* image back through encode → decode and compare the
+  result against decoding the *original* image's latent.
+- Measure **Reconstruction MSE** (protected vs. original reconstruction)
+  and **Final Latent Distance** (L2 distance between original and perturbed
+  latents) as the two headline metrics.
+- Spot-check results visually: protected images should look unchanged to
+  the eye, while their reconstructions should show visible degradation
+  (blur, color shift, structural distortion) compared to the unprotected
+  baseline.
+- Collect latent statistics (mean, std, shape) per run for sanity-checking
+  that the attack isn't producing degenerate/out-of-distribution latents.
+
+**Deliverable:** a verification report comparing protected vs. unprotected
+reconstruction quality across the sample set, with the metrics above.
+
+### Phase 5 — Robustness
 
 *(not started)*
 
@@ -146,7 +144,7 @@ model — resizing, cropping, re-encoding, screenshotting.
 
 ---
 
-### Phase 5 — JPEG-aware PGD
+### Phase 6 — JPEG-aware PGD
 
 *(not started)*
 
@@ -157,7 +155,7 @@ loop.
 
 ---
 
-### Phase 6 — Distilled Generator
+### Phase 7 — Distilled Generator
 
 *(not started)*
 
@@ -167,7 +165,7 @@ for dramatically faster runtime (real-time or near-real-time protection).
 
 ---
 
-### Phase 7 — Integration
+### Phase 8 — Integration
 
 *(not started)*
 
@@ -177,7 +175,7 @@ processing many images at once.
 
 ---
 
-### Phase 8 — Evaluation
+### Phase 9 — Evaluation
 
 *(not started)*
 
