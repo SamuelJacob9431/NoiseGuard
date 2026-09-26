@@ -2,101 +2,94 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>NoiseGuard — Image Protection</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NoiseGuard — AI Image Protection</title>
+  <link rel="stylesheet" href="landing.css">
 </head>
 <body>
+  <nav class="nav">
+    <a class="brand" href="index.html">Noise<span>Guard</span></a>
+    <a class="nav-link" href="tool.html">Open Tool</a>
+  </nav>
 
-<header class="top">
-  <div class="brand"><div class="mark">N</div><span>NoiseGuard</span></div>
-  <nav><a href="#tool">Tool</a><a href="#metrics">Metrics</a><a href="#about">About</a></nav>
-</header>
+  <main>
+    <section class="hero">
+      <div class="eyebrow">AI IMAGE PROTECTION · RESEARCH PROTOTYPE</div>
+      <h1>Protect images from AI reconstruction.</h1>
+      <p class="hero-copy">
+        NoiseGuard explores adversarial image perturbations that aim to alter
+        learned representations while keeping the visible image close to the original.
+      </p>
+      <div class="hero-actions">
+        <a class="button primary" href="tool.html">Try NoiseGuard →</a>
+        <a class="button secondary" href="#how">Explore the approach</a>
+      </div>
+      <p class="hero-note">Stable Diffusion VAE encoder/decoder · PGD · MIRAGE surrogate</p>
+    </section>
 
-<section class="hero">
-  <div class="eyebrow">Research prototype · Adversarial image protection</div>
-  <h1>Protect images from<br><span>AI reconstruction.</span></h1>
-  <p>NoiseGuard applies constrained adversarial perturbations using a PGD + MIRAGE pipeline, producing a protected image while keeping the visible change small.</p>
-</section>
-
-<main id="tool">
-  <section class="card">
-    <div class="head">
-      <div><h2>Image protection</h2><p>Upload an image and run the NoiseGuard protection pipeline.</p></div>
-      <div class="pill" id="statusPill"><span class="dot"></span><span id="statusText">Idle</span></div>
-    </div>
-
-    <div class="controls">
-      <label class="btn" for="fileInput">Choose image</label>
-      <input id="fileInput" type="file" accept="image/*">
-      <button class="btn primary" id="runBtn" disabled>Run protection</button>
-      <span class="filename" id="fileName">No image selected</span>
-    </div>
-
-    <div class="images">
-      <div>
-        <div class="label"><strong>Original</strong><span>Input</span></div>
-        <div class="frame" id="originalBox">
-          <span class="empty">Choose an image to begin</span>
-          <img id="originalImg" alt="Original image">
-        </div>
+    <section class="showcase">
+      <div class="showcase-copy">
+        <div class="label">THE IDEA</div>
+        <h2>Change the representation without visibly changing the image.</h2>
+        <p>
+          The prototype uses a frozen VAE to work with image representations,
+          then applies two optimization stages before decoding the protected image.
+        </p>
       </div>
 
-      <div>
-        <div class="label"><strong>Protected</strong><span>PGD + MIRAGE</span></div>
-        <div class="frame" id="protectedBox">
-          <span class="empty">Waiting for protection</span>
-          <img id="protectedImg" alt="Protected image">
-        </div>
+      <div class="pipeline">
+        <div class="pipeline-step"><span>01</span><b>Input image</b></div>
+        <div class="line">↓</div>
+        <div class="pipeline-step"><span>02</span><b>VAE encoding</b></div>
+        <div class="line">↓</div>
+        <div class="pipeline-step"><span>03</span><b>PGD optimization</b></div>
+        <div class="line">↓</div>
+        <div class="pipeline-step"><span>04</span><b>MIRAGE optimization</b></div>
+        <div class="line">↓</div>
+        <div class="pipeline-step"><span>05</span><b>VAE reconstruction</b></div>
       </div>
+    </section>
 
-      <div>
-        <div class="label"><strong>Reconstruction</strong><span>Backend output</span></div>
-        <div class="frame" id="reconBox">
-          <span class="empty">Waiting for protection</span>
-          <img id="reconImg" alt="Reconstruction">
-        </div>
+    <section id="how" class="section">
+      <div class="label">HOW IT WORKS</div>
+      <h2>A small research pipeline with measurable outputs.</h2>
+
+      <div class="cards">
+        <article>
+          <span class="number">01</span>
+          <h3>Latent representation</h3>
+          <p>
+            The input is encoded with the VAE encoder and represented in latent space.
+          </p>
+        </article>
+        <article>
+          <span class="number">02</span>
+          <h3>Bounded optimization</h3>
+          <p>
+            PGD and MIRAGE optimize the image while keeping perturbations within
+            the configured budget.
+          </p>
+        </article>
+        <article>
+          <span class="number">03</span>
+          <h3>Verification</h3>
+          <p>
+            The tool returns the protected image, reconstruction, latent statistics,
+            and optimization loss information.
+          </p>
+        </article>
       </div>
-    </div>
+    </section>
 
-    <div class="api"><strong>Backend:</strong> <span id="backendStatus">Not connected</span></div>
-  </section>
+    <section class="cta">
+      <div>
+        <div class="label">READY TO TEST</div>
+        <h2>Upload an image and run the pipeline.</h2>
+      </div>
+      <a class="button primary" href="tool.html">Launch the tool →</a>
+    </section>
+  </main>
 
-  <section class="card" id="metrics">
-    <div class="head">
-      <div><h2>Protection metrics</h2><p>Values returned by the Python backend.</p></div>
-    </div>
-    <div class="stats">
-      <div class="stat"><div class="value" id="mean">—</div><div class="label2">Latent mean</div></div>
-      <div class="stat"><div class="value" id="std">—</div><div class="label2">Latent std</div></div>
-      <div class="stat"><div class="value" id="shape">—</div><div class="label2">Latent shape</div></div>
-      <div class="stat"><div class="value" id="mse">—</div><div class="label2">Reconstruction MSE</div></div>
-      <div class="stat"><div class="value" id="dist">—</div><div class="label2">Max perturbation</div></div>
-    </div>
-  </section>
-
-  <section class="card">
-    <div class="head">
-      <div><h2>PGD optimization</h2><p>Loss across the protection iterations.</p></div>
-    </div>
-    <div class="chart"><canvas id="lossCanvas"></canvas></div>
-  </section>
-
-  <section class="card" id="about">
-    <div class="head">
-      <div><h2>How NoiseGuard works</h2><p>A compact view of the pipeline.</p></div>
-    </div>
-    <div class="info">
-      <article><h3>01 · PGD</h3><p>Projected Gradient Descent searches for a small adversarial perturbation while keeping the image inside a fixed epsilon budget.</p></article>
-      <article><h3>02 · MIRAGE</h3><p>The second optimization stage further modifies the protected image toward the project's surrogate objective and projects the final result back into the original budget.</p></article>
-      <article><h3>03 · Output</h3><p>The browser sends the image to the Python API and displays the returned protected image and metrics.</p></article>
-      <article><h3>04 · Prototype</h3><p>This is a research/student prototype. Images are processed by the configured backend; storage and deletion depend on the backend implementation.</p></article>
-    </div>
-  </section>
-</main>
-
-<footer>NoiseGuard · Image Protection Research Prototype</footer>
-
-<script src="script.js"></script>
+  <footer>NoiseGuard · Student research prototype</footer>
 </body>
 </html>

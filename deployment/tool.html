@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NoiseGuard — Protection Tool</title>
+<link rel="stylesheet" href="tool.css">
+</head>
+<body>
+
+<header>
+  <h1>NoiseGuard</h1>
+  <p>A tool that adds adversarial noise to protect images from AI reconstruction</p>
+  <nav class="tool-nav" aria-label="Tool sections">
+    <button type="button" class="nav-option active" id="attack-option">Combined Attack</button>
+    <button type="button" class="nav-option" id="evaluation-option">Evaluation</button>
+  </nav>
+</header>
+
+<div class="container" id="attack-section">
+
+  <div class="card combined-card">
+    <div class="section-kicker">COMBINED ATTACK</div>
+    <h2>NoiseGuard Protection Pipeline</h2>
+    <p class="section-subtitle">The tool runs the complete VAE → PGD → MIRAGE → VAE Decoder pipeline as one combined attack.</p>
+    <div class="pipeline">
+      <div class="pipeline-step"><strong>01</strong><span>VAE Encode</span></div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step"><strong>02</strong><span>Latent PGD</span></div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step"><strong>03</strong><span>MIRAGE</span></div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step"><strong>04</strong><span>VAE Decode</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>1. Load and Run Combined Attack</h2>
+    <div class="controls">
+      <label class="file-label" for="file-input">Load Image</label>
+      <input id="file-input" type="file" accept="image/*" />
+      <button id="run-btn" disabled>Run Pipeline</button>
+    </div>
+
+    <div class="image-row">
+      <div class="image-box">
+        <p>Original</p>
+        <div class="image-frame" id="box-original">
+          <span>No image loaded</span>
+          <img id="img-original" />
+        </div>
+      </div>
+      <div class="image-box">
+        <p>Reconstruction</p>
+        <div class="image-frame" id="box-recon">
+          <span>Waiting for run</span>
+          <img id="img-recon" />
+        </div>
+      </div>
+      <div class="image-box">
+        <p>Protected</p>
+        <div class="image-frame" id="box-protected">
+          <span>Waiting for run</span>
+          <img id="img-protected" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. Latent Statistics</h2>
+    <div class="stats-row">
+      <div class="stat-box"><div class="value" id="stat-mean">-</div><div class="label">Latent Mean</div></div>
+      <div class="stat-box"><div class="value" id="stat-std">-</div><div class="label">Latent Std</div></div>
+      <div class="stat-box"><div class="value" id="stat-shape">-</div><div class="label">Latent Shape</div></div>
+      <div class="stat-box"><div class="value" id="stat-mse">-</div><div class="label">Reconstruction MSE</div></div>
+      <div class="stat-box"><div class="value" id="stat-dist">-</div><div class="label">Latent Distance</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3. Combined Attack Curves</h2>
+    <div class="charts-grid">
+      <div>
+        <div class="chart-label">PGD latent-distance loss</div>
+        <canvas id="loss-canvas"></canvas>
+      </div>
+      <div>
+        <div class="chart-label">MIRAGE target similarity</div>
+        <canvas id="mirage-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card evaluation-card" id="evaluation-section">
+    <div class="section-kicker">EVALUATION</div>
+    <h2>4. Test Against an Open-Source Image Model</h2>
+    <p class="section-subtitle">The backend sends the protected image to Stable Diffusion v1.5 Img2Img as a downstream reconstruction test. This is separate from the NoiseGuard attack itself.</p>
+    <div class="evaluation-badge">BACKEND + OPEN-SOURCE MODEL TEST</div>
+
+    <div class="evaluation-images">
+      <div class="image-box">
+        <p>Original</p>
+        <div class="image-frame"><img id="eval-original" /></div>
+      </div>
+      <div class="image-box">
+        <p>NoiseGuard Protected</p>
+        <div class="image-frame"><img id="eval-protected" /></div>
+      </div>
+      <div class="image-box">
+        <p>Stable Diffusion Reconstruction</p>
+        <div class="image-frame"><img id="eval-ai-reconstruction" /></div>
+      </div>
+    </div>
+
+    <h3 class="evaluation-subheading">NoiseGuard metrics</h3>
+    <div class="stats-row evaluator-row">
+      <div class="stat-box"><div class="value" id="eval-latent">-</div><div class="label">Latent Distance</div></div>
+      <div class="stat-box"><div class="value" id="eval-linf">-</div><div class="label">L∞ Perturbation</div></div>
+      <div class="stat-box"><div class="value" id="eval-budget">-</div><div class="label">Budget Used</div></div>
+      <div class="stat-box"><div class="value" id="eval-psnr">-</div><div class="label">Protected PSNR</div></div>
+      <div class="stat-box"><div class="value" id="eval-mirage">-</div><div class="label">MIRAGE Score Change</div></div>
+    </div>
+
+    <h3 class="evaluation-subheading">Downstream model reconstruction</h3>
+    <div class="stats-row evaluator-row downstream-row">
+      <div class="stat-box"><div class="value" id="down-model">-</div><div class="label">Model</div></div>
+      <div class="stat-box"><div class="value" id="down-psnr">-</div><div class="label">Generated vs Original PSNR</div></div>
+      <div class="stat-box"><div class="value" id="down-mse">-</div><div class="label">Generated vs Original MSE</div></div>
+      <div class="stat-box"><div class="value" id="down-protected-psnr">-</div><div class="label">Generated vs Protected PSNR</div></div>
+      <div class="stat-box"><div class="value" id="down-protected-mse">-</div><div class="label">Generated vs Protected MSE</div></div>
+    </div>
+  </div>
+
+  <div id="status">Status: Idle - load an image to begin</div>
+
+</div>
+
+<footer>NoiseGuard - student project</footer>
+
+<script src="tool.js"></script>
+
+</body>
+</html>

@@ -17,6 +17,9 @@ from src.phase1.vae import load_vae, freeze_vae
 from src.phase1.vae import encode_image, decode_latent
 from src.phase3.mirage import MirageSurrogate
 from src.phase3.combined_attack import pgd_then_mirage
+from evaluator import evaluate_protection
+from downstream_evaluator import evaluate_downstream_reconstruction, tensor_to_pil
+from diffusers import StableDiffusionImg2ImgPipeline
 
 
 # ============================================================
@@ -45,6 +48,7 @@ app.add_middleware(
 device = None
 vae = None
 mirage_model = None
+diffusion_pipe = None
 
 
 IMAGE_SIZE = 256
@@ -64,7 +68,7 @@ image_transform = transforms.Compose([
 # ============================================================
 
 def load_models():
-    global device, vae, mirage_model
+    global device, vae, mirage_model, diffusion_pipe
 
     print("=" * 60)
     print("NoiseGuard API - loading models")
@@ -79,10 +83,20 @@ def load_models():
     print("\nLoading MIRAGE surrogate...")
     mirage_model = MirageSurrogate(device)
 
+    print("\nLoading open-source Stable Diffusion Img2Img evaluator...")
+    diffusion_pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
+        "stable-diffusion-v1-5/stable-diffusion-v1-5",
+        torch_dtype=torch.float16 if device.type == "cuda" else torch.float32,
+        safety_checker=None,
+    )
+    diffusion_pipe = diffusion_pipe.to(device)
+    diffusion_pipe.set_progress_bar_config(disable=True)
+
     print("\n" + "=" * 60)
     print("✓ NoiseGuard models ready")
     print(f"✓ Device: {device}")
     print("✓ Pipeline: VAE → PGD → MIRAGE → VAE Decoder")
+    print("✓ Evaluator: Stable Diffusion v1.5 Img2Img")
     print("=" * 60)
 
 
@@ -108,6 +122,12 @@ def upload_to_tensor(image_bytes: bytes):
 
     return image, tensor
 
+
+def pil_to_backend_tensor(image):
+    image = image.convert("RGB").resize((IMAGE_SIZE, IMAGE_SIZE))
+    tensor = transforms.ToTensor()(image).unsqueeze(0)
+    tensor = tensor * 2.0 - 1.0
+    return tensor
 
 def tensor_to_data_url(tensor):
     """
@@ -162,6 +182,7 @@ def health():
         "device": str(device),
         "vae_loaded": vae is not None,
         "mirage_loaded": mirage_model is not None,
+        "diffusion_evaluator_loaded": diffusion_pipe is not None,
     }
 
 
@@ -251,12 +272,23 @@ async def protect(file: UploadFile = File(...)):
         )
 
         # ----------------------------------------------------
-        # Metrics
+        # Backend-only evaluator
         # ----------------------------------------------------
 
-        max_perturbation = torch.max(
-            torch.abs(protected_image - image)
-        ).item()
+        evaluation = evaluate_protection(
+            original_image=image,
+            protected_image=protected_image,
+            original_latent=original_latent,
+            protected_latent=protected_latent,
+            original_reconstruction=original_reconstruction,
+            protected_reconstruction=protected_reconstruction,
+            mirage_model=mirage_model,
+            pgd_loss_history=pgd_loss_history,
+            mirage_loss_history=mirage_loss_history,
+            epsilon=8 / 255,
+        )
+
+        max_perturbation = evaluation["perturbationLinf"]
 
         # ----------------------------------------------------
         # Images returned directly to the frontend.
@@ -275,6 +307,31 @@ async def protect(file: UploadFile = File(...)):
             image
         )
 
+        # ----------------------------------------------------
+        # Downstream open-source model evaluation
+        # ----------------------------------------------------
+        print("\nRunning Stable Diffusion v1.5 Img2Img evaluator...")
+        diffusion_input = tensor_to_pil(protected_image)
+        with torch.inference_mode():
+            generated_pil = diffusion_pipe(
+                prompt="a detailed realistic photograph matching the input image",
+                image=diffusion_input,
+                strength=0.65,
+                guidance_scale=7.5,
+                num_inference_steps=20,
+            ).images[0]
+
+        downstream_evaluation = evaluate_downstream_reconstruction(
+            original_image=image,
+            protected_image=protected_image,
+            generated_pil=generated_pil,
+            device=device,
+        )
+        downstream_url = tensor_to_data_url(
+            pil_to_backend_tensor(generated_pil)
+        )
+
+        print("✓ Downstream reconstruction complete")
         print("\n✓ Protection complete")
         print(
             f"Latent distance: {final_latent_distance:.6f}"
@@ -328,6 +385,11 @@ async def protect(file: UploadFile = File(...)):
                 float(x)
                 for x in mirage_loss_history
             ],
+
+            # Backend evaluator results.
+            "evaluation": evaluation,
+            "downstreamEvaluation": downstream_evaluation,
+            "aiReconstructionUrl": downstream_url,
         }
 
     except HTTPException:
