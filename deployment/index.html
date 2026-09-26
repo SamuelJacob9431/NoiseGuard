@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NoiseGuard — Image Protection</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><div class="mark">N</div><span>NoiseGuard</span></div>
+  <nav><a href="#tool">Tool</a><a href="#metrics">Metrics</a><a href="#about">About</a></nav>
+</header>
+
+<section class="hero">
+  <div class="eyebrow">Research prototype · Adversarial image protection</div>
+  <h1>Protect images from<br><span>AI reconstruction.</span></h1>
+  <p>NoiseGuard applies constrained adversarial perturbations using a PGD + MIRAGE pipeline, producing a protected image while keeping the visible change small.</p>
+</section>
+
+<main id="tool">
+  <section class="card">
+    <div class="head">
+      <div><h2>Image protection</h2><p>Upload an image and run the NoiseGuard protection pipeline.</p></div>
+      <div class="pill" id="statusPill"><span class="dot"></span><span id="statusText">Idle</span></div>
+    </div>
+
+    <div class="controls">
+      <label class="btn" for="fileInput">Choose image</label>
+      <input id="fileInput" type="file" accept="image/*">
+      <button class="btn primary" id="runBtn" disabled>Run protection</button>
+      <span class="filename" id="fileName">No image selected</span>
+    </div>
+
+    <div class="images">
+      <div>
+        <div class="label"><strong>Original</strong><span>Input</span></div>
+        <div class="frame" id="originalBox">
+          <span class="empty">Choose an image to begin</span>
+          <img id="originalImg" alt="Original image">
+        </div>
+      </div>
+
+      <div>
+        <div class="label"><strong>Protected</strong><span>PGD + MIRAGE</span></div>
+        <div class="frame" id="protectedBox">
+          <span class="empty">Waiting for protection</span>
+          <img id="protectedImg" alt="Protected image">
+        </div>
+      </div>
+
+      <div>
+        <div class="label"><strong>Reconstruction</strong><span>Backend output</span></div>
+        <div class="frame" id="reconBox">
+          <span class="empty">Waiting for protection</span>
+          <img id="reconImg" alt="Reconstruction">
+        </div>
+      </div>
+    </div>
+
+    <div class="api"><strong>Backend:</strong> <span id="backendStatus">Not connected</span></div>
+  </section>
+
+  <section class="card" id="metrics">
+    <div class="head">
+      <div><h2>Protection metrics</h2><p>Values returned by the Python backend.</p></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="value" id="mean">—</div><div class="label2">Latent mean</div></div>
+      <div class="stat"><div class="value" id="std">—</div><div class="label2">Latent std</div></div>
+      <div class="stat"><div class="value" id="shape">—</div><div class="label2">Latent shape</div></div>
+      <div class="stat"><div class="value" id="mse">—</div><div class="label2">Reconstruction MSE</div></div>
+      <div class="stat"><div class="value" id="dist">—</div><div class="label2">Max perturbation</div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="head">
+      <div><h2>PGD optimization</h2><p>Loss across the protection iterations.</p></div>
+    </div>
+    <div class="chart"><canvas id="lossCanvas"></canvas></div>
+  </section>
+
+  <section class="card" id="about">
+    <div class="head">
+      <div><h2>How NoiseGuard works</h2><p>A compact view of the pipeline.</p></div>
+    </div>
+    <div class="info">
+      <article><h3>01 · PGD</h3><p>Projected Gradient Descent searches for a small adversarial perturbation while keeping the image inside a fixed epsilon budget.</p></article>
+      <article><h3>02 · MIRAGE</h3><p>The second optimization stage further modifies the protected image toward the project's surrogate objective and projects the final result back into the original budget.</p></article>
+      <article><h3>03 · Output</h3><p>The browser sends the image to the Python API and displays the returned protected image and metrics.</p></article>
+      <article><h3>04 · Prototype</h3><p>This is a research/student prototype. Images are processed by the configured backend; storage and deletion depend on the backend implementation.</p></article>
+    </div>
+  </section>
+</main>
+
+<footer>NoiseGuard · Image Protection Research Prototype</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
