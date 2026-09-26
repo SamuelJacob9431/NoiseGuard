@@ -1,419 +1,295 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NoiseGuard - Image Protection Tool</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NoiseGuard — Image Protection</title>
 <style>
-  * { box-sizing: border-box; }
-
-  body {
-    font-family: Arial, Helvetica, sans-serif;
-    background-color: #f4f4f4;
-    color: #222;
-    margin: 0;
-    padding: 0;
-  }
-
-  header {
-    background-color: #2c3e50;
-    color: white;
-    padding: 24px 20px;
-    text-align: center;
-  }
-
-  header h1 {
-    margin: 0 0 6px 0;
-    font-size: 28px;
-  }
-
-  header p {
-    margin: 0;
-    font-size: 14px;
-    color: #cfd8e3;
-  }
-
-  .container {
-    max-width: 950px;
-    margin: 30px auto;
-    padding: 0 20px;
-  }
-
-  .card {
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 24px;
-  }
-
-  .card h2 {
-    margin-top: 0;
-    font-size: 18px;
-    color: #2c3e50;
-    border-bottom: 2px solid #eee;
-    padding-bottom: 8px;
-  }
-
-  .controls {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-  }
-
-  button, .file-label {
-    background-color: #2c3e50;
-    color: white;
-    border: none;
-    padding: 10px 18px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-  }
-
-  button:hover, .file-label:hover {
-    background-color: #34495e;
-  }
-
-  button:disabled {
-    background-color: #aaa;
-    cursor: not-allowed;
-  }
-
-  input[type="file"] {
-    display: none;
-  }
-
-  .image-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 20px;
-  }
-
-  .image-box {
-    text-align: center;
-  }
-
-  .image-box p {
-    font-weight: bold;
-    margin-bottom: 6px;
-    font-size: 14px;
-  }
-
-  .image-frame {
-    background-color: #eee;
-    border: 1px dashed #bbb;
-    border-radius: 6px;
-    height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
-
-  .image-frame img {
-    max-width: 100%;
-    max-height: 100%;
-    display: none;
-  }
-
-  .image-frame span {
-    color: #888;
-    font-size: 13px;
-    padding: 0 10px;
-  }
-
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-
-  .stat-box {
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    padding: 12px;
-    text-align: center;
-  }
-
-  .stat-box .value {
-    font-size: 18px;
-    font-weight: bold;
-    color: #2c3e50;
-  }
-
-  .stat-box .label {
-    font-size: 11px;
-    color: #777;
-    margin-top: 4px;
-  }
-
-  canvas#loss-canvas {
-    width: 100%;
-    height: 180px;
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-  }
-
-  #status {
-    margin-top: 14px;
-    font-size: 13px;
-    color: #555;
-  }
-
-  footer {
-    text-align: center;
-    padding: 20px;
-    font-size: 12px;
-    color: #999;
-  }
+:root{--bg:#0a0d12;--panel:#11161f;--panel2:#171d27;--line:#283140;--text:#f4f7fb;--muted:#8e99aa;--accent:#7d8cff;--good:#56d39a;--bad:#ff7474}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+.top{height:68px;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:0 32px;background:#0a0d12dd;backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:750}.mark{width:34px;height:34px;border:1px solid #3b4660;border-radius:9px;display:grid;place-items:center;color:#aab3ff;background:#141a27}
+nav{display:flex;gap:24px}nav a{font-size:13px;color:var(--muted);text-decoration:none}nav a:hover{color:var(--text)}
+.hero{max-width:1050px;margin:auto;padding:76px 24px 46px;text-align:center}.eyebrow{display:inline-block;border:1px solid #30394b;background:#121724;color:#aab3ff;border-radius:999px;padding:7px 11px;font-size:11px}
+h1{font-size:clamp(42px,7vw,72px);line-height:.98;letter-spacing:-.055em;margin:18px 0}.hero h1 span{color:#9da8ff}.hero p{max-width:650px;margin:0 auto;color:var(--muted);line-height:1.7;font-size:15px}
+main{width:min(1100px,calc(100% - 32px));margin:auto auto 70px}.card{background:linear-gradient(145deg,var(--panel),#0f141b);border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:18px;box-shadow:0 18px 60px #00000022}
+.head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:20px}.head h2{margin:0;font-size:18px}.head p{margin:5px 0 0;color:var(--muted);font-size:12px}
+.pill{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:99px;padding:7px 10px;color:var(--muted);font-size:11px}.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}.running .dot{background:var(--accent);animation:pulse 1s infinite}.success .dot{background:var(--good)}.error .dot{background:var(--bad)}@keyframes pulse{50%{opacity:.3}}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px}.btn{border:1px solid var(--line);border-radius:10px;padding:11px 16px;background:#171d27;color:var(--text);cursor:pointer;font-size:13px}.btn:hover:not(:disabled){border-color:#505b74}.primary{background:var(--accent);border-color:var(--accent);font-weight:650}.primary:hover:not(:disabled){background:#929cff}.btn:disabled{opacity:.45;cursor:not-allowed}input[type=file]{display:none}.filename{font-size:12px;color:var(--muted);max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.images{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.label{display:flex;justify-content:space-between;margin-bottom:8px;font-size:11px;color:var(--muted)}.label strong{font-size:13px;color:var(--text)}
+.frame{aspect-ratio:1/.78;min-height:210px;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:#0c1017}.frame img{max-width:100%;max-height:100%;display:none;object-fit:contain}.empty{color:#626d7d;font-size:12px;text-align:center;padding:20px}
+.api{margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--muted);font-size:11px;background:#10151e}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.stat{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}.value{font-weight:700;font-size:16px;overflow-wrap:anywhere}.label2{margin-top:5px;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.chart{height:230px;border:1px solid var(--line);border-radius:12px;background:#0c1017;overflow:hidden}.chart canvas{width:100%;height:100%;display:block}
+.info{display:grid;grid-template-columns:1fr 1fr;gap:12px}.info article{border:1px solid var(--line);border-radius:12px;padding:17px;background:var(--panel2)}.info h3{font-size:13px;margin:0 0 7px}.info p{font-size:12px;line-height:1.65;color:var(--muted);margin:0}
+footer{text-align:center;border-top:1px solid var(--line);padding:26px;color:#626d7d;font-size:11px}
+@media(max-width:850px){.images{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.info{grid-template-columns:1fr}nav{display:none}}
+@media(max-width:520px){.top{padding:0 18px}.hero{padding-top:55px}main{width:calc(100% - 20px)}.card{padding:17px}}
 </style>
 </head>
 <body>
 
-<header>
-  <h1>NoiseGuard</h1>
-  <p>A tool that adds adversarial noise to protect images from AI reconstruction</p>
+<header class="top">
+  <div class="brand"><div class="mark">N</div><span>NoiseGuard</span></div>
+  <nav><a href="#tool">Tool</a><a href="#metrics">Metrics</a><a href="#about">About</a></nav>
 </header>
 
-<div class="container">
+<section class="hero">
+  <div class="eyebrow">Research prototype · Adversarial image protection</div>
+  <h1>Protect images from<br><span>AI reconstruction.</span></h1>
+  <p>NoiseGuard applies constrained adversarial perturbations using a PGD + MIRAGE pipeline, producing a protected image while keeping the visible change small.</p>
+</section>
 
-  <div class="card">
-    <h2>1. Load and Run</h2>
-    <div class="controls">
-      <label class="file-label" for="file-input">Load Image</label>
-      <input id="file-input" type="file" accept="image/*" />
-      <button id="run-btn" disabled>Run Pipeline</button>
-    </div>
-
-    <div class="image-row">
-      <div class="image-box">
-        <p>Original</p>
-        <div class="image-frame" id="box-original">
-          <span>No image loaded</span>
-          <img id="img-original" />
-        </div>
-      </div>
-      <div class="image-box">
-        <p>Reconstruction</p>
-        <div class="image-frame" id="box-recon">
-          <span>Waiting for run</span>
-          <img id="img-recon" />
-        </div>
-      </div>
-      <div class="image-box">
-        <p>Protected</p>
-        <div class="image-frame" id="box-protected">
-          <span>Waiting for run</span>
-          <img id="img-protected" />
-        </div>
-      </div>
-    </div>
+<main id="tool">
+<section class="card">
+  <div class="head">
+    <div><h2>Image protection</h2><p>Upload an image and run the NoiseGuard protection pipeline.</p></div>
+    <div class="pill" id="statusPill"><span class="dot"></span><span id="statusText">Idle</span></div>
   </div>
 
-  <div class="card">
-    <h2>2. Latent Statistics</h2>
-    <div class="stats-row">
-      <div class="stat-box"><div class="value" id="stat-mean">-</div><div class="label">Latent Mean</div></div>
-      <div class="stat-box"><div class="value" id="stat-std">-</div><div class="label">Latent Std</div></div>
-      <div class="stat-box"><div class="value" id="stat-shape">-</div><div class="label">Latent Shape</div></div>
-      <div class="stat-box"><div class="value" id="stat-mse">-</div><div class="label">Reconstruction MSE</div></div>
-      <div class="stat-box"><div class="value" id="stat-dist">-</div><div class="label">Latent Distance</div></div>
-    </div>
+  <div class="controls">
+    <label class="btn" for="fileInput">Choose image</label>
+    <input id="fileInput" type="file" accept="image/*">
+    <button class="btn primary" id="runBtn" disabled>Run protection</button>
+    <span class="filename" id="fileName">No image selected</span>
   </div>
 
-  <div class="card">
-    <h2>3. PGD Loss Curve</h2>
-    <canvas id="loss-canvas"></canvas>
+  <div class="images">
+    <div><div class="label"><strong>Original</strong><span>Input</span></div><div class="frame" id="originalBox"><span class="empty">Choose an image to begin</span><img id="originalImg" alt="Original image"></div></div>
+    <div><div class="label"><strong>Protected</strong><span>PGD + MIRAGE</span></div><div class="frame" id="protectedBox"><span class="empty">Waiting for protection</span><img id="protectedImg" alt="Protected image"></div></div>
+    <div><div class="label"><strong>Reconstruction</strong><span>Backend output</span></div><div class="frame" id="reconBox"><span class="empty">Waiting for protection</span><img id="reconImg" alt="Reconstruction"></div></div>
   </div>
 
-  <div id="status">Status: Idle - load an image to begin</div>
+  <div class="api"><strong>Backend:</strong> <span id="backendStatus">Not connected</span></div>
+</section>
 
-</div>
+<section class="card" id="metrics">
+  <div class="head"><div><h2>Protection metrics</h2><p>Values returned by the Python backend.</p></div></div>
+  <div class="stats">
+    <div class="stat"><div class="value" id="mean">—</div><div class="label2">Latent mean</div></div>
+    <div class="stat"><div class="value" id="std">—</div><div class="label2">Latent std</div></div>
+    <div class="stat"><div class="value" id="shape">—</div><div class="label2">Latent shape</div></div>
+    <div class="stat"><div class="value" id="mse">—</div><div class="label2">Reconstruction MSE</div></div>
+    <div class="stat"><div class="value" id="dist">—</div><div class="label2">Max perturbation</div></div>
+  </div>
+</section>
 
-<footer>NoiseGuard - student project</footer>
+<section class="card">
+  <div class="head"><div><h2>PGD optimization</h2><p>Loss across the protection iterations.</p></div></div>
+  <div class="chart"><canvas id="lossCanvas"></canvas></div>
+</section>
+
+<section class="card" id="about">
+  <div class="head"><div><h2>How NoiseGuard works</h2><p>A compact view of the pipeline.</p></div></div>
+  <div class="info">
+    <article><h3>01 · PGD</h3><p>Projected Gradient Descent searches for a small adversarial perturbation while keeping the image inside a fixed epsilon budget.</p></article>
+    <article><h3>02 · MIRAGE</h3><p>The second optimization stage further modifies the protected image toward the project's surrogate objective and projects the final result back into the original budget.</p></article>
+    <article><h3>03 · Output</h3><p>The browser sends the image to the Python API and displays the returned protected image and metrics.</p></article>
+    <article><h3>04 · Prototype</h3><p>This is a research/student prototype. Images are processed by the configured backend; storage and deletion depend on the backend implementation.</p></article>
+  </div>
+</section>
+</main>
+
+<footer>NoiseGuard · Image Protection Research Prototype</footer>
 
 <script>
-  /* -----------------------------------------------------------
-     Grab references to all the page elements we need to update.
-     ----------------------------------------------------------- */
-  const fileInput   = document.getElementById('file-input');
-  const runBtn      = document.getElementById('run-btn');
+/* Set this to your Cloudflare URL, without /protect. */
+const API_URL = "YOUR_CLOUDFLARE_URL";
 
-  const boxOriginal  = document.getElementById('box-original');
-  const boxRecon     = document.getElementById('box-recon');
-  const boxProtected = document.getElementById('box-protected');
-  const imgOriginal  = document.getElementById('img-original');
-  const imgRecon     = document.getElementById('img-recon');
-  const imgProtected = document.getElementById('img-protected');
+const fileInput=document.getElementById("fileInput");
+const runBtn=document.getElementById("runBtn");
+const fileName=document.getElementById("fileName");
+const originalImg=document.getElementById("originalImg");
+const protectedImg=document.getElementById("protectedImg");
+const reconImg=document.getElementById("reconImg");
+const originalBox=document.getElementById("originalBox");
+const protectedBox=document.getElementById("protectedBox");
+const reconBox=document.getElementById("reconBox");
+const backendStatus=document.getElementById("backendStatus");
+const statusPill=document.getElementById("statusPill");
+const statusText=document.getElementById("statusText");
+const canvas=document.getElementById("lossCanvas");
+const ctx=canvas.getContext("2d");
 
-  const statusEl = document.getElementById('status');
+const stats={
+  mean:document.getElementById("mean"),
+  std:document.getElementById("std"),
+  shape:document.getElementById("shape"),
+  mse:document.getElementById("mse"),
+  dist:document.getElementById("dist")
+};
 
-  const stat = {
-    mean:  document.getElementById('stat-mean'),
-    std:   document.getElementById('stat-std'),
-    shape: document.getElementById('stat-shape'),
-    mse:   document.getElementById('stat-mse'),
-    dist:  document.getElementById('stat-dist'),
-  };
+let currentFile=null;
+let objectUrl=null;
 
-  const lossCanvas = document.getElementById('loss-canvas');
-  const ctx = lossCanvas.getContext('2d');
+function setStatus(text,type=""){
+  statusText.textContent=text;
+  statusPill.className="pill"+(type?" "+type:"");
+}
 
-  let currentFile = null;
+function resetBox(box,img,message){
+  img.style.display="none";
+  img.removeAttribute("src");
+  box.querySelector(".empty").textContent=message;
+  box.querySelector(".empty").style.display="block";
+}
 
-  /* -----------------------------------------------------------
-     STEP 1: Load Image button
-     When the user picks a file, show it in the "Original" box
-     and reset everything else back to its empty state.
-     ----------------------------------------------------------- */
-  fileInput.addEventListener('change', function (event) {
-    const file = event.target.files[0];
-    if (!file) return;
+function resetStats(){
+  Object.values(stats).forEach(x=>x.textContent="—");
+}
 
-    currentFile = file;
+fileInput.addEventListener("change",e=>{
+  const file=e.target.files[0];
+  if(!file)return;
+  currentFile=file;
+  fileName.textContent=file.name;
 
-    // Show the picked image using a local, temporary URL
-    const url = URL.createObjectURL(file);
-    imgOriginal.src = url;
-    imgOriginal.style.display = 'block';
-    boxOriginal.querySelector('span').style.display = 'none';
+  if(objectUrl)URL.revokeObjectURL(objectUrl);
+  objectUrl=URL.createObjectURL(file);
 
-    resetBox(boxRecon, imgRecon, 'Waiting for run');
-    resetBox(boxProtected, imgProtected, 'Waiting for run');
-    resetStats();
-    drawLossCurve([]);
+  originalImg.src=objectUrl;
+  originalImg.style.display="block";
+  originalBox.querySelector(".empty").style.display="none";
 
-    runBtn.disabled = false;
-    statusEl.textContent = 'Status: Loaded ' + file.name;
-  });
-
-  /* -----------------------------------------------------------
-     STEP 2: Run Pipeline button
-     This is where the real PGD attack would run. Right now it
-     calls a placeholder function that returns fake/empty data,
-     so you can see the wiring works before the real model exists.
-     ----------------------------------------------------------- */
-  runBtn.addEventListener('click', async function () {
-    if (!currentFile) return;
-
-    runBtn.disabled = true;
-    statusEl.textContent = 'Status: Running PGD attack...';
-
-    const result = await runPipeline(currentFile);
-
-    if (!result) {
-      statusEl.textContent = 'Status: Pipeline not connected yet (placeholder)';
-      runBtn.disabled = false;
-      return;
-    }
-
-    // If a real result comes back, fill in the UI with it
-    imgRecon.src = result.reconstructionUrl;
-    imgRecon.style.display = 'block';
-    boxRecon.querySelector('span').style.display = 'none';
-
-    imgProtected.src = result.protectedUrl;
-    imgProtected.style.display = 'block';
-    boxProtected.querySelector('span').style.display = 'none';
-
-    stat.mean.textContent  = result.latentMean;
-    stat.std.textContent   = result.latentStd;
-    stat.shape.textContent = result.latentShape;
-    stat.mse.textContent   = result.reconstructionMse;
-    stat.dist.textContent  = result.finalLatentDistance;
-
-    drawLossCurve(result.lossCurve || []);
-    statusEl.textContent = 'Status: PGD attack complete';
-    runBtn.disabled = false;
-  });
-
-  /* -----------------------------------------------------------
-     PLACEHOLDER FUNCTION
-     This is the ONE function that needs to be replaced with a
-     real call to a Python/PyTorch backend (for example, using
-     fetch() to send the image to a server that runs the actual
-     VAE encode -> PGD attack -> decode steps).
-
-     Right now it just waits half a second and returns nothing,
-     so the page shows "not connected yet" instead of pretending
-     to have run a real attack.
-     ----------------------------------------------------------- */
-  async function runPipeline(imageFile) {
-    return new Promise(function (resolve) {
-      setTimeout(function () {
-        resolve(null); // TODO: replace with a real backend call
-      }, 500);
-    });
-  }
-
-  /* -----------------------------------------------------------
-     Small helper functions to reset the UI between runs
-     ----------------------------------------------------------- */
-  function resetBox(box, img, message) {
-    img.style.display = 'none';
-    img.removeAttribute('src');
-    const span = box.querySelector('span');
-    span.textContent = message;
-    span.style.display = 'block';
-  }
-
-  function resetStats() {
-    Object.values(stat).forEach(function (el) { el.textContent = '-'; });
-  }
-
-  /* -----------------------------------------------------------
-     Draws the PGD loss curve on a <canvas> using plain
-     JavaScript (no chart library needed).
-     ----------------------------------------------------------- */
-  function drawLossCurve(values) {
-    // Match canvas resolution to its displayed size
-    const rect = lossCanvas.getBoundingClientRect();
-    lossCanvas.width = rect.width;
-    lossCanvas.height = rect.height;
-
-    const w = lossCanvas.width;
-    const h = lossCanvas.height;
-    ctx.clearRect(0, 0, w, h);
-
-    if (!values || values.length === 0) {
-      ctx.fillStyle = '#999';
-      ctx.font = '13px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('No data yet', w / 2, h / 2);
-      return;
-    }
-
-    const max = Math.max(...values);
-    const min = Math.min(...values);
-    const range = (max - min) || 1;
-    const padding = 10;
-
-    // Convert each loss value into an (x, y) point on the canvas
-    const points = values.map(function (v, i) {
-      const x = padding + (i / (values.length - 1)) * (w - padding * 2);
-      const y = h - padding - ((v - min) / range) * (h - padding * 2);
-      return [x, y];
-    });
-
-    ctx.beginPath();
-    points.forEach(function (p, i) {
-      if (i === 0) ctx.moveTo(p[0], p[1]);
-      else ctx.lineTo(p[0], p[1]);
-    });
-    ctx.strokeStyle = '#2c3e50';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-
-  // Draw an empty chart on first page load
+  resetBox(protectedBox,protectedImg,"Waiting for protection");
+  resetBox(reconBox,reconImg,"Waiting for protection");
+  resetStats();
   drawLossCurve([]);
-</script>
 
+  runBtn.disabled=false;
+  setStatus("Ready");
+  backendStatus.textContent=API_URL==="YOUR_CLOUDFLARE_URL"?"Add Cloudflare URL":"Configured";
+});
+
+runBtn.addEventListener("click",async()=>{
+  if(!currentFile)return;
+
+  runBtn.disabled=true;
+  setStatus("Running","running");
+  backendStatus.textContent="Sending image to backend…";
+
+  try{
+    const result=await runPipeline(currentFile);
+
+    if(!result||result.success!==true)
+      throw new Error("Backend returned an invalid response.");
+
+    protectedImg.src=result.protectedUrl;
+    protectedImg.style.display="block";
+    protectedBox.querySelector(".empty").style.display="none";
+
+    reconImg.src=result.reconstructionUrl;
+    reconImg.style.display="block";
+    reconBox.querySelector(".empty").style.display="none";
+
+    stats.mean.textContent=formatValue(result.latentMean);
+    stats.std.textContent=formatValue(result.latentStd);
+    stats.shape.textContent=formatValue(result.latentShape);
+    stats.mse.textContent=formatValue(result.reconstructionMse);
+    stats.dist.textContent=formatNumber(result.maxPerturbation??result.finalLatentDistance);
+
+    drawLossCurve(result.lossCurve||[]);
+    backendStatus.textContent="Protection complete";
+    setStatus("Complete","success");
+  }catch(error){
+    console.error(error);
+    backendStatus.textContent=error.message;
+    setStatus("Failed","error");
+    alert("NoiseGuard could not process the image.\n\n"+error.message);
+  }finally{
+    runBtn.disabled=false;
+  }
+});
+
+async function runPipeline(imageFile){
+  if(!API_URL||API_URL==="YOUR_CLOUDFLARE_URL")
+    throw new Error("Set API_URL to your Cloudflare backend URL first.");
+
+  const form=new FormData();
+  form.append("file",imageFile);
+
+  const response=await fetch(`${API_URL}/protect`,{
+    method:"POST",
+    body:form
+  });
+
+  if(!response.ok){
+    let message=`Backend error (${response.status})`;
+    try{
+      const body=await response.json();
+      if(body.detail)message+=`: ${body.detail}`;
+    }catch(_){}
+    throw new Error(message);
+  }
+
+  return await response.json();
+}
+
+function formatValue(v){
+  return v===null||v===undefined||v===""?"—":String(v);
+}
+
+function formatNumber(v){
+  if(v===null||v===undefined||v==="")return"—";
+  const n=Number(v);
+  return Number.isFinite(n)?n.toFixed(6):String(v);
+}
+
+function drawLossCurve(values){
+  const r=canvas.getBoundingClientRect();
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=r.width*dpr;
+  canvas.height=r.height*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const w=r.width,h=r.height;
+  ctx.clearRect(0,0,w,h);
+
+  if(!values.length){
+    ctx.fillStyle="#657083";
+    ctx.font="12px system-ui";
+    ctx.textAlign="center";
+    ctx.fillText("Run protection to view the PGD loss curve",w/2,h/2);
+    return;
+  }
+
+  const vals=values.map(Number).filter(Number.isFinite);
+  if(!vals.length)return;
+
+  const max=Math.max(...vals),min=Math.min(...vals),range=(max-min)||1;
+  const L=42,R=16,T=18,B=28,pw=w-L-R,ph=h-T-B;
+
+  ctx.strokeStyle="#242b36";
+  ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=T+i/4*ph;
+    ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(w-R,y);ctx.stroke();
+  }
+
+  ctx.fillStyle="#657083";
+  ctx.font="10px system-ui";
+  ctx.textAlign="right";
+  ctx.fillText(max.toFixed(3),L-7,T+3);
+  ctx.fillText(min.toFixed(3),L-7,h-B);
+
+  ctx.strokeStyle="#929cff";
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  vals.forEach((v,i)=>{
+    const x=L+(i/Math.max(vals.length-1,1))*pw;
+    const y=T+(1-(v-min)/range)*ph;
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  });
+  ctx.stroke();
+
+  ctx.fillStyle="#657083";
+  ctx.textAlign="left";
+  ctx.fillText("Step 1",L,h-8);
+  ctx.textAlign="right";
+  ctx.fillText(`Step ${vals.length}`,w-R,h-8);
+}
+
+drawLossCurve([]);
+window.addEventListener("resize",()=>drawLossCurve([]));
+</script>
 </body>
 </html>
