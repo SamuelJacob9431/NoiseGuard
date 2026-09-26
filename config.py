@@ -28,6 +28,10 @@ RECONSTRUCTION_IMAGE = OUTPUT_DIR / "reconstructed.jpg"
 
 PROTECTED_IMAGE = OUTPUT_DIR / "protected.jpg"
 
+PROTECTED_RECONSTRUCTION_IMAGE = (
+    OUTPUT_DIR / "protected_reconstructed.jpg"
+)
+
 LOSS_CURVE = GRAPH_DIR / "loss_curve.png"
 
 LATENT_PLOT = GRAPH_DIR / "latent_plot.png"

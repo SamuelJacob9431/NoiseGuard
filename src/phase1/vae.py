@@ -17,7 +17,9 @@ def load_vae(device):
     vae = AutoencoderKL.from_pretrained(
         MODEL_ID,
         subfolder="vae",
-        torch_dtype=dtype
+        torch_dtype=dtype, 
+        local_files_only=True,
+        
     )
 
     vae = vae.to(device)

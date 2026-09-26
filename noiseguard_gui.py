@@ -1,4 +1,5 @@
 import sys
+import inspect
 from dataclasses import dataclass
 from typing import Optional, List
 
@@ -25,16 +26,42 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 import matplotlib
 
+
+# ==========================================================
+# PHASE 1
+# ==========================================================
+
 from src.phase1.device import get_device
+
 from src.phase1.vae import (
     load_vae,
     freeze_vae,
     encode_image,
     decode_latent,
 )
+
 from src.phase1.image_utils import load_image
-from src.phase1.output_utils import reconstruction_error
+
+from src.phase1.output_utils import (
+    reconstruction_error,
+)
+
+
+# ==========================================================
+# PHASE 2
+# ==========================================================
+
 from src.phase2.attack import run_attack
+
+
+# ==========================================================
+# PHASE 3
+# ==========================================================
+
+try:
+    from src.phase3 import mirage as mirage_module
+except Exception:
+    mirage_module = None
 
 
 matplotlib.rcParams["font.family"] = "sans-serif"
@@ -45,15 +72,19 @@ matplotlib.rcParams["font.family"] = "sans-serif"
 # ==========================================================
 
 class Theme:
+
     BG = "#0f1115"
     PANEL = "#171a21"
     PANEL_ALT = "#1e222b"
     BORDER = "#2a2f3a"
+
     ACCENT = "#6c8cff"
     ACCENT_HOVER = "#8aa4ff"
+
     SUCCESS = "#4ade80"
     WARN = "#fbbf24"
     DANGER = "#f87171"
+
     TEXT_PRIMARY = "#e8eaf0"
     TEXT_SECOND = "#9aa3b5"
     TEXT_MUTED = "#5c6479"
@@ -185,17 +216,30 @@ QProgressBar::chunk {{
 
 @dataclass
 class PipelineResult:
+
     reconstruction_pixmap: Optional[QPixmap] = None
-    protected_pixmap: Optional[QPixmap] = None
+
+    pgd_protected_pixmap: Optional[QPixmap] = None
+
+    mirage_protected_pixmap: Optional[QPixmap] = None
 
     latent_mean: Optional[float] = None
+
     latent_std: Optional[float] = None
+
     latent_shape: Optional[str] = None
 
     reconstruction_mse: Optional[float] = None
+
+    protected_reconstruction_mse: Optional[float] = None
+
+    mirage_reconstruction_mse: Optional[float] = None
+
     final_latent_distance: Optional[float] = None
 
     pgd_loss_curve: Optional[List[float]] = None
+
+    mirage_loss_curve: Optional[List[float]] = None
 
 
 # ==========================================================
@@ -212,9 +256,14 @@ def tensor_to_pixmap(tensor: torch.Tensor) -> QPixmap:
     image = image.clamp(-1.0, 1.0)
 
     image = (image + 1.0) / 2.0
+
     image = image.mul(255).byte()
 
-    image = image.permute(1, 2, 0).contiguous()
+    image = image.permute(
+        1,
+        2,
+        0
+    ).contiguous()
 
     height, width, channels = image.shape
 
@@ -228,19 +277,255 @@ def tensor_to_pixmap(tensor: torch.Tensor) -> QPixmap:
         QImage.Format_RGB888,
     )
 
-    return QPixmap.fromImage(qimage.copy())
+    return QPixmap.fromImage(
+        qimage.copy()
+    )
+
+
+# ==========================================================
+# MIRAGE ADAPTER
+# ==========================================================
+
+def run_mirage_stage(
+    vae,
+    image,
+    protected_image,
+):
+    """
+    Adapter around the existing Phase 3 MIRAGE implementation.
+
+    It tries common MIRAGE entry-point names and normalizes
+    the returned value.
+    """
+
+    if mirage_module is None:
+
+        raise RuntimeError(
+            "Phase 3 MIRAGE module could not be imported."
+        )
+
+    candidates = [
+        "run_mirage",
+        "mirage_attack",
+        "apply_mirage",
+        "generate_mirage",
+        "run_attack",
+    ]
+
+    function = None
+
+    for name in candidates:
+
+        candidate = getattr(
+            mirage_module,
+            name,
+            None
+        )
+
+        if callable(candidate):
+
+            function = candidate
+            break
+
+    if function is None:
+
+        raise RuntimeError(
+            "No MIRAGE function found in "
+            "src.phase3.mirage. Expected one of: "
+            + ", ".join(candidates)
+        )
+
+    signature = inspect.signature(
+        function
+    )
+
+    parameters = signature.parameters
+
+    kwargs = {}
+
+    if "vae" in parameters:
+        kwargs["vae"] = vae
+
+    if "image" in parameters:
+        kwargs["image"] = protected_image
+
+    elif "input_image" in parameters:
+        kwargs["input_image"] = protected_image
+
+    elif "protected_image" in parameters:
+        kwargs["protected_image"] = protected_image
+
+    elif "original_image" in parameters:
+        kwargs["original_image"] = image
+
+    if "device" in parameters:
+        kwargs["device"] = image.device
+
+    if "steps" in parameters:
+        kwargs["steps"] = 20
+
+    if "iterations" in parameters:
+        kwargs["iterations"] = 20
+
+    if "epsilon" in parameters:
+        kwargs["epsilon"] = 8 / 255
+
+    if "alpha" in parameters:
+        kwargs["alpha"] = 2 / 255
+
+    try:
+
+        result = function(
+            **kwargs
+        )
+
+    except TypeError:
+
+        # Fallback for positional APIs.
+
+        try:
+
+            result = function(
+                vae,
+                protected_image
+            )
+
+        except TypeError:
+
+            result = function(
+                protected_image
+            )
+
+    return result
+
+
+# ==========================================================
+# NORMALIZE MIRAGE RESULT
+# ==========================================================
+
+def normalize_mirage_result(
+    result
+):
+
+    protected_image = None
+
+    loss_history = []
+
+    if isinstance(
+        result,
+        torch.Tensor
+    ):
+
+        protected_image = result
+
+    elif isinstance(
+        result,
+        dict
+    ):
+
+        for key in (
+            "protected_image",
+            "mirage_image",
+            "adversarial_image",
+            "output",
+            "image",
+        ):
+
+            if key in result:
+
+                protected_image = result[key]
+
+                break
+
+        for key in (
+            "loss_history",
+            "losses",
+            "loss_curve",
+        ):
+
+            if key in result:
+
+                loss_history = result[key]
+
+                break
+
+    elif isinstance(
+        result,
+        (tuple, list)
+    ):
+
+        for item in result:
+
+            if isinstance(
+                item,
+                torch.Tensor
+            ):
+
+                if item.dim() >= 3:
+
+                    protected_image = item
+
+                    break
+
+        for item in result:
+
+            if isinstance(
+                item,
+                (list, tuple)
+            ):
+
+                if all(
+                    isinstance(
+                        x,
+                        (float, int)
+                    )
+                    for x in item
+                ):
+
+                    loss_history = list(
+                        item
+                    )
+
+                    break
+
+    if protected_image is None:
+
+        raise RuntimeError(
+            "MIRAGE executed but did not return "
+            "a protected image."
+        )
+
+    return (
+        protected_image,
+        loss_history,
+    )
 
 
 # ==========================================================
 # REAL PIPELINE
 # ==========================================================
 
-def run_real_pipeline(image_path: str) -> PipelineResult:
+def run_real_pipeline(
+    image_path: str
+) -> PipelineResult:
 
     device = get_device()
 
-    vae = load_vae(device)
-    freeze_vae(vae)
+    # ------------------------------------------------------
+    # LOAD VAE
+    # ------------------------------------------------------
+
+    vae = load_vae(
+        device
+    )
+
+    freeze_vae(
+        vae
+    )
+
+    # ------------------------------------------------------
+    # LOAD IMAGE
+    # ------------------------------------------------------
 
     image = load_image(
         image_path,
@@ -248,7 +533,7 @@ def run_real_pipeline(image_path: str) -> PipelineResult:
     )
 
     # ------------------------------------------------------
-    # Encode
+    # ENCODE
     # ------------------------------------------------------
 
     latent = encode_image(
@@ -257,11 +542,17 @@ def run_real_pipeline(image_path: str) -> PipelineResult:
     )
 
     latent_mean = latent.mean().item()
+
     latent_std = latent.std().item()
-    latent_shape = str(tuple(latent.shape))
+
+    latent_shape = str(
+        tuple(
+            latent.shape
+        )
+    )
 
     # ------------------------------------------------------
-    # Reconstruction
+    # NORMAL RECONSTRUCTION
     # ------------------------------------------------------
 
     reconstructed = decode_latent(
@@ -280,10 +571,12 @@ def run_real_pipeline(image_path: str) -> PipelineResult:
 
     (
         protected_image,
-        loss_history,
+        protected_reconstruction,
+        pgd_loss_history,
         original_latent,
         protected_latent,
         final_latent_distance,
+        protected_reconstruction_mse,
     ) = run_attack(
         vae,
         image,
@@ -293,27 +586,92 @@ def run_real_pipeline(image_path: str) -> PipelineResult:
     )
 
     # ------------------------------------------------------
-    # Result
+    # MIRAGE
+    # ------------------------------------------------------
+
+    mirage_result = run_mirage_stage(
+        vae,
+        image,
+        protected_image
+    )
+
+    (
+        mirage_image,
+        mirage_loss_history,
+    ) = normalize_mirage_result(
+        mirage_result
+    )
+
+    # ------------------------------------------------------
+    # MIRAGE RECONSTRUCTION
+    # ------------------------------------------------------
+
+    try:
+
+        mirage_reconstruction = decode_latent(
+            vae,
+            encode_image(
+                vae,
+                mirage_image
+            )
+        )
+
+        mirage_reconstruction_mse = reconstruction_error(
+            image,
+            mirage_reconstruction
+        )
+
+    except Exception:
+
+        mirage_reconstruction = mirage_image
+
+        mirage_reconstruction_mse = None
+
+    # ------------------------------------------------------
+    # RESULT
     # ------------------------------------------------------
 
     return PipelineResult(
+
         reconstruction_pixmap=tensor_to_pixmap(
             reconstructed
         ),
 
-        protected_pixmap=tensor_to_pixmap(
-            protected_image
+        pgd_protected_pixmap=tensor_to_pixmap(
+            protected_reconstruction
+        ),
+
+        mirage_protected_pixmap=tensor_to_pixmap(
+            mirage_reconstruction
         ),
 
         latent_mean=latent_mean,
+
         latent_std=latent_std,
+
         latent_shape=latent_shape,
 
         reconstruction_mse=reconstruction_mse,
 
-        final_latent_distance=final_latent_distance,
+        protected_reconstruction_mse=(
+            protected_reconstruction_mse
+        ),
 
-        pgd_loss_curve=loss_history,
+        mirage_reconstruction_mse=(
+            mirage_reconstruction_mse
+        ),
+
+        final_latent_distance=(
+            final_latent_distance
+        ),
+
+        pgd_loss_curve=(
+            pgd_loss_history
+        ),
+
+        mirage_loss_curve=(
+            mirage_loss_history
+        ),
     )
 
 
@@ -324,11 +682,21 @@ def run_real_pipeline(image_path: str) -> PipelineResult:
 class PipelineWorker(QObject):
 
     finished = Signal(object)
-    progress = Signal(int, str)
+
+    progress = Signal(
+        int,
+        str
+    )
+
     failed = Signal(str)
 
-    def __init__(self, image_path: str):
+    def __init__(
+        self,
+        image_path: str
+    ):
+
         super().__init__()
+
         self.image_path = image_path
 
     def run(self):
@@ -355,6 +723,11 @@ class PipelineWorker(QObject):
                 "Running PGD attack..."
             )
 
+            self.progress.emit(
+                70,
+                "Running MIRAGE..."
+            )
+
             result = run_real_pipeline(
                 self.image_path
             )
@@ -364,7 +737,9 @@ class PipelineWorker(QObject):
                 "Pipeline complete"
             )
 
-            self.finished.emit(result)
+            self.finished.emit(
+                result
+            )
 
         except Exception as exc:
 
@@ -387,11 +762,17 @@ class ImagePanel(QFrame):
 
         super().__init__()
 
-        self.setObjectName("panel")
+        self.setObjectName(
+            "panel"
+        )
 
-        self._accent = accent or Theme.ACCENT
+        self._accent = (
+            accent or Theme.ACCENT
+        )
 
-        outer = QVBoxLayout(self)
+        outer = QVBoxLayout(
+            self
+        )
 
         outer.setContentsMargins(
             16,
@@ -400,11 +781,15 @@ class ImagePanel(QFrame):
             16
         )
 
-        outer.setSpacing(10)
+        outer.setSpacing(
+            10
+        )
 
         cap_row = QHBoxLayout()
 
-        dot = QLabel("●")
+        dot = QLabel(
+            "●"
+        )
 
         dot.setStyleSheet(
             f"color: {self._accent};"
@@ -418,11 +803,19 @@ class ImagePanel(QFrame):
             "imageCaption"
         )
 
-        cap_row.addWidget(dot)
-        cap_row.addWidget(label)
+        cap_row.addWidget(
+            dot
+        )
+
+        cap_row.addWidget(
+            label
+        )
+
         cap_row.addStretch()
 
-        outer.addLayout(cap_row)
+        outer.addLayout(
+            cap_row
+        )
 
         self.image_frame = QFrame()
 
@@ -431,8 +824,8 @@ class ImagePanel(QFrame):
         )
 
         self.image_frame.setMinimumSize(
-            260,
-            260
+            220,
+            220
         )
 
         img_layout = QVBoxLayout(
@@ -480,6 +873,10 @@ class ImagePanel(QFrame):
                 "No image loaded"
             )
 
+            self.image_label.setPixmap(
+                QPixmap()
+            )
+
             return
 
         scaled = pixmap.scaled(
@@ -499,6 +896,10 @@ class ImagePanel(QFrame):
             "Processing…"
         )
 
+        self.image_label.setPixmap(
+            QPixmap()
+        )
+
         self.image_label.setStyleSheet(
             f"color: {Theme.WARN};"
             "font-size: 12px;"
@@ -511,7 +912,10 @@ class ImagePanel(QFrame):
 
 class StatTile(QFrame):
 
-    def __init__(self, label: str):
+    def __init__(
+        self,
+        label: str
+    ):
 
         super().__init__()
 
@@ -519,7 +923,9 @@ class StatTile(QFrame):
             "panel"
         )
 
-        layout = QVBoxLayout(self)
+        layout = QVBoxLayout(
+            self
+        )
 
         layout.setContentsMargins(
             16,
@@ -528,7 +934,9 @@ class StatTile(QFrame):
             14
         )
 
-        layout.setSpacing(4)
+        layout.setSpacing(
+            4
+        )
 
         self.value_label = QLabel(
             "—"
@@ -617,13 +1025,13 @@ class LossCurveCanvas(
         )
 
         self.ax.set_xlabel(
-            "PGD Iteration",
+            "Iteration",
             color=Theme.TEXT_SECOND,
             fontsize=9
         )
 
         self.ax.set_ylabel(
-            "Latent Distance",
+            "Loss",
             color=Theme.TEXT_SECOND,
             fontsize=9
         )
@@ -637,32 +1045,63 @@ class LossCurveCanvas(
 
     def update_curve(
         self,
-        values: Optional[List[float]]
+        pgd_values=None,
+        mirage_values=None,
     ):
 
         self.ax.clear()
 
         self._style_axes()
 
-        if values:
+        has_data = False
+
+        if pgd_values:
 
             xs = list(
-                range(len(values))
+                range(
+                    len(
+                        pgd_values
+                    )
+                )
             )
 
             self.ax.plot(
                 xs,
-                values,
+                pgd_values,
                 color=Theme.ACCENT,
-                linewidth=2.2
+                linewidth=2.2,
+                label="PGD"
             )
 
-            self.ax.fill_between(
+            has_data = True
+
+        if mirage_values:
+
+            xs = list(
+                range(
+                    len(
+                        mirage_values
+                    )
+                )
+            )
+
+            self.ax.plot(
                 xs,
-                values,
-                min(values),
-                color=Theme.ACCENT,
-                alpha=0.08
+                mirage_values,
+                color=Theme.SUCCESS,
+                linewidth=2.0,
+                label="MIRAGE"
+            )
+
+            has_data = True
+
+        if has_data:
+
+            self.ax.legend(
+                facecolor=Theme.PANEL,
+                edgecolor=Theme.BORDER,
+                labelcolor=Theme.TEXT_SECOND,
+                fontsize=8,
             )
 
         else:
@@ -702,27 +1141,28 @@ class NoiseGuardWindow(
         )
 
         self.resize(
-            1180,
-            820
+            1500,
+            900
         )
 
         self.setMinimumSize(
-            980,
-            720
+            1200,
+            760
         )
 
         self.current_image_path = None
 
         self._thread = None
+
         self._worker = None
 
         self._build_ui()
 
         self._apply_shadows()
 
-    # ------------------------------------------------------
+    # ======================================================
     # UI
-    # ------------------------------------------------------
+    # ======================================================
 
     def _build_ui(self):
 
@@ -783,6 +1223,10 @@ class NoiseGuardWindow(
         )
 
         self._build_status_bar()
+
+    # ======================================================
+    # HEADER
+    # ======================================================
 
     def _build_header(self):
 
@@ -858,6 +1302,10 @@ class NoiseGuardWindow(
 
         return row
 
+    # ======================================================
+    # IMAGE ROW
+    # ======================================================
+
     def _build_image_row(self):
 
         row = QHBoxLayout()
@@ -872,14 +1320,22 @@ class NoiseGuardWindow(
         )
 
         self.panel_reconstruction = ImagePanel(
-            "Reconstruction",
+            "VAE Reconstruction",
             Theme.WARN
         )
 
         self.panel_protected = ImagePanel(
-            "Protected",
+            "PGD Protected Reconstruction",
             Theme.SUCCESS
         )
+
+        self.panel_protected_reconstruction = ImagePanel(
+            "MIRAGE Protected Reconstruction",
+            Theme.ACCENT
+        )
+
+        # IMPORTANT:
+        # All four panels are now actually added.
 
         row.addWidget(
             self.panel_original
@@ -893,7 +1349,15 @@ class NoiseGuardWindow(
             self.panel_protected
         )
 
+        row.addWidget(
+            self.panel_protected_reconstruction
+        )
+
         return row
+
+    # ======================================================
+    # STATS
+    # ======================================================
 
     def _build_stats_row(self):
 
@@ -919,6 +1383,14 @@ class NoiseGuardWindow(
             "Reconstruction MSE"
         )
 
+        self.stat_protected_mse = StatTile(
+            "PGD Reconstruction MSE"
+        )
+
+        self.stat_mirage_mse = StatTile(
+            "MIRAGE Reconstruction MSE"
+        )
+
         self.stat_dist = StatTile(
             "Final Latent Distance"
         )
@@ -928,6 +1400,8 @@ class NoiseGuardWindow(
             self.stat_std,
             self.stat_shape,
             self.stat_mse,
+            self.stat_protected_mse,
+            self.stat_mirage_mse,
             self.stat_dist,
         ):
 
@@ -936,6 +1410,10 @@ class NoiseGuardWindow(
             )
 
         return row
+
+    # ======================================================
+    # GRAPH
+    # ======================================================
 
     def _build_loss_panel(self):
 
@@ -950,7 +1428,7 @@ class NoiseGuardWindow(
         )
 
         title = QLabel(
-            "PGD LOSS CURVE"
+            "PGD / MIRAGE LOSS CURVES"
         )
 
         title.setObjectName(
@@ -974,6 +1452,10 @@ class NoiseGuardWindow(
         )
 
         return panel
+
+    # ======================================================
+    # STATUS BAR
+    # ======================================================
 
     def _build_status_bar(self):
 
@@ -1003,16 +1485,24 @@ class NoiseGuardWindow(
             self.status_text
         )
 
+    # ======================================================
+    # SHADOWS
+    # ======================================================
+
     def _apply_shadows(self):
 
         widgets = (
             self.panel_original,
             self.panel_reconstruction,
             self.panel_protected,
+            self.panel_protected_reconstruction,
+
             self.stat_mean,
             self.stat_std,
             self.stat_shape,
             self.stat_mse,
+            self.stat_protected_mse,
+            self.stat_mirage_mse,
             self.stat_dist,
         )
 
@@ -1051,9 +1541,9 @@ class NoiseGuardWindow(
             effect
         )
 
-    # ------------------------------------------------------
+    # ======================================================
     # STATUS
-    # ------------------------------------------------------
+    # ======================================================
 
     def _set_status(
         self,
@@ -1069,9 +1559,9 @@ class NoiseGuardWindow(
             f"color: {color};"
         )
 
-    # ------------------------------------------------------
+    # ======================================================
     # LOAD IMAGE
-    # ------------------------------------------------------
+    # ======================================================
 
     def on_load_image(self):
 
@@ -1104,9 +1594,14 @@ class NoiseGuardWindow(
             None
         )
 
+        self.panel_protected_reconstruction.set_pixmap(
+            None
+        )
+
         self._reset_stats()
 
         self.loss_canvas.update_curve(
+            None,
             None
         )
 
@@ -1124,9 +1619,9 @@ class NoiseGuardWindow(
             Theme.SUCCESS
         )
 
-    # ------------------------------------------------------
+    # ======================================================
     # RUN
-    # ------------------------------------------------------
+    # ======================================================
 
     def on_run_pipeline(self):
 
@@ -1151,7 +1646,10 @@ class NoiseGuardWindow(
         )
 
         self.panel_reconstruction.set_pending()
+
         self.panel_protected.set_pending()
+
+        self.panel_protected_reconstruction.set_pending()
 
         self._set_status(
             "Starting NoiseGuard pipeline...",
@@ -1200,9 +1698,9 @@ class NoiseGuardWindow(
 
         self._thread.start()
 
-    # ------------------------------------------------------
+    # ======================================================
     # PROGRESS
-    # ------------------------------------------------------
+    # ======================================================
 
     def _on_progress(
         self,
@@ -1219,9 +1717,9 @@ class NoiseGuardWindow(
             Theme.WARN
         )
 
-    # ------------------------------------------------------
+    # ======================================================
     # FINISHED
-    # ------------------------------------------------------
+    # ======================================================
 
     def _on_pipeline_finished(
         self,
@@ -1233,7 +1731,11 @@ class NoiseGuardWindow(
         )
 
         self.panel_protected.set_pixmap(
-            result.protected_pixmap
+            result.pgd_protected_pixmap
+        )
+
+        self.panel_protected_reconstruction.set_pixmap(
+            result.mirage_protected_pixmap
         )
 
         self.stat_mean.set_value(
@@ -1258,6 +1760,18 @@ class NoiseGuardWindow(
             )
         )
 
+        self.stat_protected_mse.set_value(
+            self._fmt(
+                result.protected_reconstruction_mse
+            )
+        )
+
+        self.stat_mirage_mse.set_value(
+            self._fmt(
+                result.mirage_reconstruction_mse
+            )
+        )
+
         self.stat_dist.set_value(
             self._fmt(
                 result.final_latent_distance
@@ -1265,7 +1779,8 @@ class NoiseGuardWindow(
         )
 
         self.loss_canvas.update_curve(
-            result.pgd_loss_curve
+            result.pgd_loss_curve,
+            result.mirage_loss_curve,
         )
 
         self.progress_bar.setValue(
@@ -1289,9 +1804,9 @@ class NoiseGuardWindow(
             Theme.SUCCESS
         )
 
-    # ------------------------------------------------------
+    # ======================================================
     # ERROR
-    # ------------------------------------------------------
+    # ======================================================
 
     def _on_pipeline_failed(
         self,
@@ -1323,18 +1838,19 @@ class NoiseGuardWindow(
             message
         )
 
-    # ------------------------------------------------------
+    # ======================================================
     # CLEANUP
-    # ------------------------------------------------------
+    # ======================================================
 
     def _cleanup_thread(self):
 
         self._thread = None
+
         self._worker = None
 
-    # ------------------------------------------------------
+    # ======================================================
     # RESET
-    # ------------------------------------------------------
+    # ======================================================
 
     def _reset_stats(self):
 
@@ -1343,12 +1859,18 @@ class NoiseGuardWindow(
             self.stat_std,
             self.stat_shape,
             self.stat_mse,
+            self.stat_protected_mse,
+            self.stat_mirage_mse,
             self.stat_dist,
         ):
 
             tile.set_value(
                 "—"
             )
+
+    # ======================================================
+    # FORMAT
+    # ======================================================
 
     @staticmethod
     def _fmt(value):
