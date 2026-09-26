@@ -18,7 +18,7 @@ def load_vae(device):
         MODEL_ID,
         subfolder="vae",
         torch_dtype=dtype, 
-        local_files_only=True,
+        local_files_only=False,
         
     )
 
