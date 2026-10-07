@@ -325,14 +325,6 @@ person
 nature
 ```
 Illustrative output:
-Label     Original   Protected
----
-dog          98.2%       94.7%
-cat           0.8%        1.5%
-car           0.3%        0.6%
-The numbers above are illustrative only, not measured NoiseGuard
-results.
-This evaluator is intentionally separate from the PGD/MIRAGE objective.
 ---
 Phase 4 --- Verification
 Status: Next
