@@ -635,7 +635,8 @@ epsilon = 8 / 255
 ```
 The combined pipeline projects the final image back into this budget.
 ---
-Limitations
+### Limitations
+```
 NoiseGuard is currently a research prototype.
 The current implementation does not yet establish that:
 latent displacement reliably causes degradation across diffusion
@@ -648,8 +649,10 @@ the current attack is stronger than existing approaches
 current demo metrics constitute a complete benchmark
 These questions are addressed by the later verification, robustness, and
 evaluation phases.
+```
 ---
-Research Questions
+### Research Questions
+```
 How much can a small pixel-space perturbation move an image in VAE
 latent space?
 Does latent displacement translate into degraded diffusion
@@ -661,9 +664,10 @@ Can an iterative attack be distilled into a fast one-pass
 generator?
 How does NoiseGuard compare with existing image-protection
 methods?
+```
 ---
 
-Disclaimer
+Disclaimer:
 NoiseGuard is an experimental research project intended to study
 adversarial perturbations and the robustness of image-generation/editing
 systems.
