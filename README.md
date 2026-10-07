@@ -325,14 +325,6 @@ person
 nature
 ```
 Illustrative output:
-Label     Original   Protected
----
-dog          98.2%       94.7%
-cat           0.8%        1.5%
-car           0.3%        0.6%
-The numbers above are illustrative only, not measured NoiseGuard
-results.
-This evaluator is intentionally separate from the PGD/MIRAGE objective.
 ---
 Phase 4 --- Verification
 Status: Next
@@ -472,7 +464,8 @@ Potential architecture:
 ```
 ---
 Phase 9 --- Evaluation
-Status: Planned
+Status: Planned:
+```
 Formal evaluation will measure NoiseGuard over a larger image set.
 Potential dimensions:
 Attack effectiveness
@@ -496,6 +489,7 @@ Glaze
 PhotoGuard
 Comparisons should use the same dataset, transformations, metrics, and
 evaluation protocol wherever practical.
+```
 ---
 Repository Structure
 The repository is organized around the research phases:
@@ -539,6 +533,7 @@ The layout may evolve as verification, evaluation, and deployment are
 added.
 ---
 Technology Stack
+```
 Component                Technology
 ---
 Language                 Python
@@ -553,6 +548,8 @@ GPU                      CUDA
 Development GPU          NVIDIA RTX 3050 6 GB
 Evaluation               CLIP-family / open-source vision models
 Development deployment   Kaggle GPU + Cloudflare Quick Tunnel
+
+```
 ---
 Running the Current Demo
 1. Prepare the Python environment
@@ -643,7 +640,8 @@ epsilon = 8 / 255
 ```
 The combined pipeline projects the final image back into this budget.
 ---
-Limitations
+### Limitations
+```
 NoiseGuard is currently a research prototype.
 The current implementation does not yet establish that:
 latent displacement reliably causes degradation across diffusion
@@ -656,8 +654,10 @@ the current attack is stronger than existing approaches
 current demo metrics constitute a complete benchmark
 These questions are addressed by the later verification, robustness, and
 evaluation phases.
+```
 ---
-Research Questions
+### Research Questions
+```
 How much can a small pixel-space perturbation move an image in VAE
 latent space?
 Does latent displacement translate into degraded diffusion
@@ -669,102 +669,10 @@ Can an iterative attack be distilled into a fast one-pass
 generator?
 How does NoiseGuard compare with existing image-protection
 methods?
----
-Visual Documentation
-For a research-style repository, keep diagrams and experiment outputs in
-a dedicated directory:
-``` text
-docs/
-├── architecture.svg
-├── pipeline.gif
-├── pgd-loss.png
-├── original-vs-protected.png
-└── evaluation.png
-```
-SVG is recommended for large architecture diagrams because it remains
-sharp when displayed at different sizes.
----
-Adding Images to the README
-If the repository contains:
-``` text
-docs/architecture.png
-```
-use:
-``` markdown
-![NoiseGuard architecture](docs/architecture.png)
-```
-For a centered image with a controlled width:
-``` html
-<p align="center">
-  <img
-    src="docs/architecture.png"
-    alt="NoiseGuard architecture"
-    width="900"
-  />
-</p>
-```
-For wide diagrams, the second form usually looks better.
----
-Adding GIFs
-GIFs can be embedded in exactly the same way:
-``` markdown
-![NoiseGuard pipeline](docs/pipeline.gif)
-```
-or:
-``` html
-<p align="center">
-  <img
-    src="docs/pipeline.gif"
-    alt="NoiseGuard pipeline demonstration"
-    width="900"
-  />
-</p>
-```
-For NoiseGuard, a short demonstration GIF could show:
-``` text
-Original
-   |
-   v
-PGD optimization
-   |
-   v
-MIRAGE
-   |
-   v
-Protected image
-   |
-   v
-Independent evaluation
-```
-A short 5--10 second loop is generally preferable to a very large GIF.
----
-Recommended README Visual Layout
-A strong portfolio/research README can start with a visual immediately
-after the title:
-``` markdown
-# NoiseGuard
-
-> Adversarial image protection against diffusion-model reconstruction.
-
-<p align="center">
-  <img src="docs/pipeline.gif" width="900">
-</p>
-
-## Overview
-
-...
-
-<p align="center">
-  <img src="docs/architecture.svg" width="900">
-</p>
-
-## Results
-
-...
 ```
 ---
 
-Disclaimer
+Disclaimer:
 NoiseGuard is an experimental research project intended to study
 adversarial perturbations and the robustness of image-generation/editing
 systems.
