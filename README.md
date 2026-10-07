@@ -762,28 +762,8 @@ after the title:
 
 ...
 ```
-Recommended diagrams:
-Overall system architecture
-PGD mechanism
-PGD → MIRAGE combined pipeline
-Verification experiment
-Independent model evaluation
-Robustness experiment
-This makes the repository read like a research project rather than
-simply a collection of Python scripts.
 ---
-Roadmap
-[x] Phase 0 --- Environment
-[x] Phase 1 --- Frozen VAE
-[x] Phase 2 --- PGD
-[x] Phase 3 --- Demo GUI / Web API
-[ ] Phase 4 --- Verification
-[ ] Phase 5 --- Robustness
-[ ] Phase 6 --- JPEG-aware PGD
-[ ] Phase 7 --- Distilled Generator
-[ ] Phase 8 --- Integration
-[ ] Phase 9 --- Evaluation
----
+
 Disclaimer
 NoiseGuard is an experimental research project intended to study
 adversarial perturbations and the robustness of image-generation/editing
