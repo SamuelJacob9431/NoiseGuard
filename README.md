@@ -464,7 +464,8 @@ Potential architecture:
 ```
 ---
 Phase 9 --- Evaluation
-Status: Planned
+Status: Planned:
+```
 Formal evaluation will measure NoiseGuard over a larger image set.
 Potential dimensions:
 Attack effectiveness
@@ -488,6 +489,7 @@ Glaze
 PhotoGuard
 Comparisons should use the same dataset, transformations, metrics, and
 evaluation protocol wherever practical.
+```
 ---
 Repository Structure
 The repository is organized around the research phases:
@@ -531,6 +533,7 @@ The layout may evolve as verification, evaluation, and deployment are
 added.
 ---
 Technology Stack
+```
 Component                Technology
 ---
 Language                 Python
@@ -545,6 +548,8 @@ GPU                      CUDA
 Development GPU          NVIDIA RTX 3050 6 GB
 Evaluation               CLIP-family / open-source vision models
 Development deployment   Kaggle GPU + Cloudflare Quick Tunnel
+
+```
 ---
 Running the Current Demo
 1. Prepare the Python environment
